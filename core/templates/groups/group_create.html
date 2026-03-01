@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Header -->
+    <div class="card rounded-[20px] p-6 mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">
+                    <i class="fa-solid fa-plus-circle text-[var(--primary)] mr-3"></i>
+                    Create Study Group
+                </h1>
+                <p class="text-[14px] text-[var(--text-muted)]">Start a new collaborative study group</p>
+            </div>
+            <a href="{% url 'groups:group_list' %}" class="btn btn-secondary">
+                <i class="fa-solid fa-arrow-left mr-2"></i>
+                Back to Groups
+            </a>
+        </div>
+    </div>
+
+    <!-- Create Group Form -->
+    <div class="card rounded-[20px] p-8">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Group Name *</label>
+                <input type="text" 
+                       name="name" 
+                       required
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                       placeholder="e.g., Data Structures Study Group">
+            </div>
+            
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Description</label>
+                <textarea name="description" 
+                          rows="4"
+                          class="input w-full p-[10px_14px] rounded-xl text-[14px] resize-none"
+                          placeholder="What's this group about?"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Subject (Optional)</label>
+                <select name="subject" 
+                        class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+                    <option value="">Select a subject</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Physics">Physics</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Max Members</label>
+                <select name="max_members" 
+                        class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+                    <option value="5">5 members</option>
+                    <option value="10">10 members</option>
+                    <option value="15">15 members</option>
+                    <option value="20">20 members</option>
+                    <option value="50">50 members</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Add Members (Optional)</label>
+                <div class="relative">
+                    <input type="text" 
+                           id="memberSearch"
+                           class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                           placeholder="Search for users to add...">
+                    <div id="searchResults" class="absolute top-full left-0 right-0 mt-1 bg-white border border-[var(--border)] rounded-xl shadow-lg hidden z-10 max-h-48 overflow-y-auto">
+                        <!-- Search results will appear here -->
+                    </div>
+                </div>
+                
+                <!-- Selected Members -->
+                <div id="selectedMembers" class="mt-3 flex flex-wrap gap-2">
+                    <!-- Selected member chips will appear here -->
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <input type="checkbox" 
+                       name="is_private" 
+                       id="isPrivate"
+                       class="w-4 h-4 text-[var(--primary)] border-[var(--primary-border)] rounded focus:ring-[var(--primary)]">
+                <label for="isPrivate" class="text-[13px] text-[var(--text-dark)]">
+                    Make this group private (invite-only)
+                </label>
+            </div>
+            
+            <div class="flex gap-4 pt-4">
+                <button type="submit" class="btn btn-primary flex-1">
+                    <i class="fa-solid fa-users mr-2"></i>
+                    Create Group
+                </button>
+                <a href="{% url 'groups:group_list' %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

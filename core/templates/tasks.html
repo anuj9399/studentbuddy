@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Header -->
+    <div class="card rounded-[20px] p-6 mb-8 fade-in-up">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-[26px] font-black text-[var(--text-dark)] mb-2">
+                    <i class="fa-solid fa-list-check text-[var(--primary)] mr-3"></i>
+                    My Tasks
+                </h2>
+                <p class="text-[14px] text-[var(--text-muted)]">Manage your study tasks and track progress</p>
+            </div>
+            <button onclick="showAddTaskModal()" 
+                    class="btn btn-primary px-6 py-3">
+                <i class="fa-solid fa-plus mr-2"></i>
+                Add Task
+            </button>
+        </div>
+    </div>
+
+    <!-- Tasks List -->
+    <div class="space-y-4">
+        {% for task in tasks %}
+        <div class="card rounded-[20px] p-6 fade-in-up hover:shadow-lg transition-all">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-6 h-6 rounded-full border-2 {% if task.status == 'completed' %}bg-green-500 border-green-500{% elif task.priority == 'high' %}border-red-500{% elif task.priority == 'medium' %}border-yellow-500{% else %}border-blue-500{% endif %} flex items-center justify-center">
+                        {% if task.status == 'completed' %}
+                        <i class="fa-solid fa-check text-white text-xs"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h3 class="text-[var(--text-dark)] font-semibold {% if task.status == 'completed' %}line-through opacity-60{% endif %}">
+                            {{ task.title }}
+                        </h3>
+                        <p class="text-[13px] text-[var(--text-muted)]">{{ task.description|default:"No description" }}</p>
+                        <div class="flex items-center gap-4 mt-2">
+                            <span class="text-xs {% if task.priority == 'high' %}text-red-500{% elif task.priority == 'medium' %}text-yellow-500{% else %}text-blue-500{% endif %}">
+                                <i class="fa-solid fa-flag mr-1"></i>{{ task.get_priority_display }}
+                            </span>
+                            {% if task.due_date %}
+                            <span class="text-xs text-[var(--text-muted)]">
+                                <i class="fa-solid fa-calendar mr-1"></i>{{ task.due_date|date:"M d, Y" }}
+                            </span>
+                            {% endif %}
+                            <span class="text-xs text-[var(--text-muted)]">
+                                <i class="fa-solid fa-clock mr-1"></i>{{ task.created_at|date:"M d" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if task.status != 'completed' %}
+                    <a href="{% url 'complete_task' task.id %}" 
+                       class="px-4 py-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-all">
+                        <i class="fa-solid fa-check mr-1"></i>
+                        Complete
+                    </a>
+                    {% endif %}
+                    <span class="text-xs px-2 py-1 rounded-full {% if task.status == 'completed' %}bg-green-100 text-green-600{% elif task.status == 'in_progress' %}bg-blue-100 text-blue-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {{ task.get_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card rounded-[20px] p-12 text-center fade-in-up">
+            <i class="fa-solid fa-clipboard-list text-6xl text-[var(--text-muted)] mb-4"></i>
+            <h3 class="text-[18px] font-black text-[var(--text-dark)] mb-2">No tasks yet</h3>
+            <p class="text-[14px] text-[var(--text-muted)] mb-6">Start by adding your first study task</p>
+            <button onclick="showAddTaskModal()" 
+                    class="btn btn-primary px-6 py-3">
+                <i class="fa-solid fa-plus mr-2"></i>
+                Add Your First Task
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Add Task Modal -->
+<div id="addTaskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+    <div class="card rounded-[20px] p-8 max-w-md w-full mx-4">
+        <h3 class="text-[20px] font-black text-[var(--text-dark)] mb-6">
+            <i class="fa-solid fa-plus-circle text-[var(--primary)] mr-3"></i>
+            Add New Task
+        </h3>
+        
+        <form method="POST" action="{% url 'tasks' %}">
+            {% csrf_token %}
+            
+            <div class="mb-4">
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Task Title</label>
+                <input type="text" name="title" required
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                       placeholder="Enter task title...">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Description</label>
+                <textarea name="description" rows="3"
+                          class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                          placeholder="Enter task description..."></textarea>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Priority</label>
+                <select name="priority" 
+                        class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Due Date (Optional)</label>
+                <input type="datetime-local" name="due_date"
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+            </div>
+            
+            <div class="flex gap-3">
+                <button type="submit" 
+                        class="flex-1 btn btn-primary px-6 py-3">
+                    <i class="fa-solid fa-plus mr-2"></i>
+                    Add Task
+                </button>
+                <button type="button" onclick="hideAddTaskModal()"
+                        class="flex-1 btn btn-secondary px-6 py-3">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showAddTaskModal() {
+    document.getElementById('addTaskModal').classList.remove('hidden');
+}
+
+function hideAddTaskModal() {
+    document.getElementById('addTaskModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('addTaskModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideAddTaskModal();
+    }
+});
+</script>
+
+{% endblock %}

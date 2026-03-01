@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="card rounded-[20px] p-6 mb-8 fade-in-up">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-[28px] font-black text-[#1a1a2e] mb-2">
+                    <i class="fa-solid fa-rocket text-[var(--primary)] mr-3"></i>
+                    AI Career Guide
+                </h2>
+                <p class="text-[14px] text-[var(--text-muted)]">Discover your career path based on your academic stream</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Career Analysis Form -->
+    <div class="card rounded-[20px] p-6 mb-8 fade-in-up">
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Your Academic Stream</label>
+                    <select name="stream" required
+                            class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+                        <option value="">Select your stream...</option>
+                        {% if all_streams %}
+                            {% for stream in all_streams %}
+                            <option value="{{ stream }}" {% if selected_stream == stream %}selected{% endif %}>
+                                {{ stream }}
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" 
+                            class="w-full btn btn-primary px-6 py-3">
+                        <i class="fa-solid fa-search mr-2"></i>
+                        Analyze Career Options
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Career Predictions -->
+    {% if career_predictions %}
+    <div class="space-y-6">
+        <h3 class="text-[20px] font-black text-[#1a1a2e] mb-6">
+            <i class="fa-solid fa-lightbulb text-[var(--primary)] mr-3"></i>
+            Career Paths for {{ selected_stream }}
+        </h3>
+        
+        {% for career in career_predictions %}
+        <div class="card rounded-[20px] p-6 fade-in-up">
+            <h4 class="text-[15px] font-black text-[#1a1a2e] mb-2">{{ career.title }}</h4>
+            <p class="text-[13px] text-[var(--text-muted)] mb-4">{{ career.description }}</p>
+            
+            <div class="flex flex-wrap gap-3 mb-4">
+                <span class="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
+                    <i class="fa-solid fa-dollar-sign mr-1"></i>{{ career.average_salary }}
+                </span>
+                <span class="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">
+                    <i class="fa-solid fa-chart-line mr-1"></i>{{ career.growth_rate }} Growth
+                </span>
+            </div>
+            
+            <div class="border-l-4 border-purple-500 pl-4 mb-4">
+                <h5 class="text-[15px] font-black text-[#1a1a2e] mb-3">
+                    <i class="fa-solid fa-tools text-[var(--primary)] mr-2"></i>Key Skills Required
+                </h5>
+                <div class="flex flex-wrap gap-2">
+                    {% for skill in career.key_skills.split ',' %}
+                    <span class="px-3 py-1 bg-slate-700/50 text-slate-300 rounded-lg text-sm">
+                        {{ skill.strip }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Initial State -->
+    {% if not selected_stream %}
+    <div class="card rounded-[20px] p-12 text-center fade-in-up">
+        <i class="fa-solid fa-compass text-6xl text-[var(--primary)] mb-4"></i>
+        <h3 class="text-[28px] font-black text-[#1a1a2e] mb-4">Discover Your Complete Career Journey</h3>
+        <p class="text-[14px] text-[var(--text-muted)] mb-6">
+            Select your academic stream to get personalized career recommendations.
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

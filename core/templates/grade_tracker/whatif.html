@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% load grade_tags %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'grade_tracker:grade_dashboard' %}" class="text-purple-400 hover:text-purple-300 mb-4 inline-block">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back to Grade Tracker
+        </a>
+        <h1 class="text-4xl font-bold text-white mb-2">What-If Calculator</h1>
+        <p class="text-slate-400">Calculate required SGPA to achieve your target CGPA</p>
+    </div>
+
+    <!-- Current Status -->
+    <div class="glass-panel rounded-2xl p-8 mb-8 border border-slate-700/50">
+        <div class="text-center">
+            <h2 class="text-2xl font-bold text-white mb-4">Your Current Academic Status</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                    <div class="text-3xl font-bold text-purple-400">{{ current_cgpa }}</div>
+                    <div class="text-slate-400 text-sm">Current CGPA</div>
+                </div>
+                <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                    <div class="text-3xl font-bold text-blue-400">{{ profile.total_credits_completed }}</div>
+                    <div class="text-slate-400 text-sm">Credits Completed</div>
+                </div>
+                <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                    <div class="text-3xl font-bold text-green-400">{{ profile.grading_scale }}</div>
+                    <div class="text-slate-400 text-sm">Grading Scale</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calculator Form -->
+    <div class="glass-panel rounded-2xl p-8 mb-8 border border-slate-700/50">
+        <h2 class="text-2xl font-bold text-white mb-6">
+            <i class="fa-solid fa-calculator mr-2 text-purple-400"></i>
+            Target Calculator
+        </h2>
+        
+        <div class="space-y-6">
+            <!-- Target CGPA Slider -->
+            <div>
+                <label class="block text-lg font-semibold text-white mb-3">
+                    Target CGPA: <span id="targetValue" class="text-purple-400">8.0</span>
+                </label>
+                <input type="range" 
+                       id="targetSlider"
+                       min="0" 
+                       max="{{ profile.grading_scale }}" 
+                       step="0.1"
+                       value="8.0"
+                       class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider">
+                <div class="flex justify-between text-slate-400 text-sm mt-2">
+                    <span>0</span>
+                    <span>{{ profile.grading_scale|mul:0.25 }}</span>
+                    <span>{{ profile.grading_scale|mul:0.5 }}</span>
+                    <span>{{ profile.grading_scale|mul:0.75 }}</span>
+                    <span>{{ profile.grading_scale }}</span>
+                </div>
+            </div>
+            
+            <!-- Remaining Semesters -->
+            <div>
+                <label for="remainingSemesters" class="block text-lg font-semibold text-white mb-3">
+                    Remaining Semesters
+                </label>
+                <input type="number" 
+                       id="remainingSemesters"
+                       min="0" 
+                       max="{{ profile.total_semesters|sub:profile.current_semester }}"
+                       value="{{ profile.total_semesters|sub:profile.current_semester }}"
+                       class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg">
+            </div>
+            
+            <!-- Credits per Semester -->
+            <div>
+                <label for="creditsPerSemester" class="block text-lg font-semibold text-white mb-3">
+                    Expected Credits per Remaining Semester
+                </label>
+                <input type="number" 
+                       id="creditsPerSemester"
+                       min="1" 
+                       max="30"
+                       value="18"
+                       class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg">
+            </div>
+            
+            <!-- Calculate Button -->
+            <button type="button" 
+                    onclick="calculateRequiredSGPA()"
+                    class="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg font-semibold text-lg">
+                <i class="fa-solid fa-chart-line mr-2"></i>
+                Calculate Required SGPA
+            </button>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden">
+        <div class="glass-panel rounded-2xl p-8 border border-slate-700/50">
+            <h2 class="text-2xl font-bold text-white mb-6">Calculation Results</h2>
+            
+            <div id="resultContent">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let currentCGPA = {{ current_cgpa }};
+let gradingScale = {{ profile.grading_scale }};
+let currentCredits = {{ profile.total_credits_completed }};
+
+// Update target value display
+document.getElementById('targetSlider').addEventListener('input', function(e) {
+    document.getElementById('targetValue').textContent = parseFloat(e.target.value).toFixed(1);
+    calculateRequiredSGPA(); // Auto-calculate on slider change
+});
+
+// Auto-calculate on input changes
+document.getElementById('remainingSemesters').addEventListener('input', calculateRequiredSGPA);
+document.getElementById('creditsPerSemester').addEventListener('input', calculateRequiredSGPA);
+
+function calculateRequiredSGPA() {
+    const targetCGPA = parseFloat(document.getElementById('targetSlider').value);
+    const remainingSemesters = parseInt(document.getElementById('remainingSemesters').value);
+    const creditsPerSemester = parseInt(document.getElementById('creditsPerSemester').value);
+    
+    // Calculate required SGPA
+    const totalTargetCredits = currentCredits + (remainingSemesters * creditsPerSemester);
+    const currentTotalPoints = currentCGPA * currentCredits;
+    const targetTotalPoints = targetCGPA * totalTargetCredits;
+    const requiredRemainingPoints = targetTotalPoints - currentTotalPoints;
+    
+    let requiredSGPA = 0;
+    if (remainingSemesters > 0) {
+        requiredSGPA = requiredRemainingPoints / (remainingSemesters * creditsPerSemester);
+        requiredSGPA = Math.max(0, Math.min(gradingScale, requiredSGPA));
+    }
+    
+    // Check feasibility
+    const isAchievable = requiredSGPA <= gradingScale;
+    
+    // Generate message
+    let message = '';
+    let messageClass = '';
+    let icon = '';
+    
+    if (targetCGPA <= currentCGPA) {
+        message = `Congratulations! You've already achieved your target CGPA of ${targetCGPA.toFixed(1)}!`;
+        messageClass = 'text-green-400';
+        icon = 'fa-trophy';
+    } else if (isAchievable) {
+        if (requiredSGPA <= currentCGPA) {
+            message = "Great! You can achieve your target with consistent performance.";
+            messageClass = 'text-green-400';
+            icon = 'fa-check-circle';
+        } else if (requiredSGPA <= gradingScale * 0.8) {
+            message = "Challenging but achievable! Focus on improving your grades.";
+            messageClass = 'text-yellow-400';
+            icon = 'fa-exclamation-triangle';
+        } else {
+            message = "You'll need excellent performance to reach your goal. Stay focused!";
+            messageClass = 'text-orange-400';
+            icon = 'fa-fire';
+        }
+    } else {
+        message = "This target seems unrealistic. Consider setting a more achievable goal.";
+        messageClass = 'text-red-400';
+        icon = 'fa-times-circle';
+    }
+    
+    // Display results
+    const resultsSection = document.getElementById('resultsSection');
+    const resultContent = document.getElementById('resultContent');
+    
+    resultsSection.classList.remove('hidden');
+    
+    resultContent.innerHTML = `
+        <div class="text-center mb-8">
+            <div class="mb-6">
+                <div class="text-5xl font-bold ${isAchievable ? 'text-green-400' : 'text-red-400'} mb-2">
+                    ${requiredSGPA.toFixed(2)}
+                </div>
+                <div class="text-slate-400 text-lg">Required SGPA per remaining semester</div>
+            </div>
+            
+            <div class="flex items-center justify-center gap-3 mb-6 ${messageClass}">
+                <i class="fa-solid ${icon} text-2xl"></i>
+                <span class="text-xl font-semibold">${message}</span>
+            </div>
+            
+            <div class="bg-slate-800/50 rounded-lg p-6 text-left max-w-2xl mx-auto">
+                <h3 class="text-lg font-semibold text-white mb-4">Calculation Breakdown:</h3>
+                <div class="space-y-2 text-slate-300">
+                    <div class="flex justify-between">
+                        <span>Current CGPA:</span>
+                        <span class="text-white font-medium">${currentCGPA.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Target CGPA:</span>
+                        <span class="text-white font-medium">${targetCGPA.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Remaining semesters:</span>
+                        <span class="text-white font-medium">${remainingSemesters}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Credits per semester:</span>
+                        <span class="text-white font-medium">${creditsPerSemester}</span>
+                    </div>
+                    <div class="border-t border-slate-600 pt-2 mt-2">
+                        <div class="flex justify-between font-semibold text-white">
+                            <span>You need ${requiredSGPA.toFixed(2)} SGPA in each of your ${remainingSemesters} remaining semesters</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Initial calculation
+calculateRequiredSGPA();
+</script>
+
+<style>
+.slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #7C3AED, #3B82F6);
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid #1f2937;
+}
+
+.slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #7C3AED, #3B82F6);
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid #1f2937;
+}
+</style>
+{% endblock %}

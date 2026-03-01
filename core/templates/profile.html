@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">
+            <span class="text-2xl mr-3">👤</span>
+            Student Profile
+        </h1>
+        <p class="text-[14px] text-[var(--text-muted)]">Manage your personal information and academic details</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="card rounded-[20px] p-8">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Profile Photo -->
+            <div class="md:col-span-2">
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Profile Photo</label>
+                <div class="flex items-center gap-4">
+                    {% if profile.profile_photo %}
+                    <img src="{{ profile.profile_photo.url }}" alt="Profile" 
+                         class="w-20 h-20 rounded-full object-cover border-2 border-[var(--primary-border)]">
+                    {% else %}
+                    <div class="w-20 h-20 rounded-full bg-[var(--primary-soft)] flex items-center justify-center border-2 border-[var(--primary-border)]">
+                        <span class="text-2xl">👤</span>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <input type="file" name="profile_photo" accept="image/*" id="profile-photo-input" class="hidden">
+                        <button type="button" onclick="document.getElementById('profile-photo-input').click()" 
+                                class="btn btn-secondary">
+                            <i class="fa-solid fa-camera mr-2"></i>Change Photo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Username -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Username *</label>
+                <input type="text" name="username" value="{{ profile.username|default:request.user.username }}" required
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+            </div>
+
+            <!-- Email -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Email *</label>
+                <input type="email" name="email" value="{{ request.user.email }}" required
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+            </div>
+
+            <!-- First Name -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">First Name</label>
+                <input type="text" name="first_name" value="{{ request.user.first_name }}"
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+            </div>
+
+            <!-- Last Name -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Last Name</label>
+                <input type="text" name="last_name" value="{{ request.user.last_name }}"
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+            </div>
+
+            <!-- Stream -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Academic Stream</label>
+                <input type="text" name="stream" value="{{ profile.stream }}"
+                       placeholder="e.g., Computer Science, Engineering, Business"
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+            </div>
+
+            <!-- Branch -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Branch/Specialization</label>
+                <input type="text" name="branch" value="{{ profile.branch }}"
+                       placeholder="e.g., AI/ML, Mechanical, Finance"
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+            </div>
+
+            <!-- College -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">College</label>
+                <input type="text" name="college" value="{{ profile.college }}"
+                       class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+            </div>
+
+            <!-- Year -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Year of Study</label>
+                <select name="year" 
+                        class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+                    <option value="">Select Year</option>
+                    <option value="1st Year" {% if profile.year == "1st Year" %}selected{% endif %}>1st Year</option>
+                    <option value="2nd Year" {% if profile.year == "2nd Year" %}selected{% endif %}>2nd Year</option>
+                    <option value="3rd Year" {% if profile.year == "3rd Year" %}selected{% endif %}>3rd Year</option>
+                    <option value="4th Year" {% if profile.year == "4th Year" %}selected{% endif %}>4th Year</option>
+                    <option value="Final Year" {% if profile.year == "Final Year" %}selected{% endif %}>Final Year</option>
+                    <option value="Graduated" {% if profile.year == "Graduated" %}selected{% endif %}>Graduated</option>
+                </select>
+            </div>
+
+            <!-- Bio -->
+            <div class="md:col-span-2">
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Bio</label>
+                <textarea name="bio" rows="4" 
+                          placeholder="Tell us about yourself, your interests, and study goals..."
+                          class="input w-full p-[10px_14px] rounded-xl text-[14px] resize-none">{{ profile.bio }}</textarea>
+            </div>
+
+            <!-- Career Goal -->
+            <div class="md:col-span-2">
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Career Goal</label>
+                <textarea name="career_goal" rows="3" 
+                          placeholder="What are your career aspirations?"
+                          class="input w-full p-[10px_14px] rounded-xl text-[14px] resize-none">{{ profile.career_goal }}</textarea>
+            </div>
+
+        </div>
+
+        <div class="flex justify-end gap-3 mt-8">
+            <a href="/" class="btn btn-secondary">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-save mr-2"></i>
+                Save Profile
+            </button>
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

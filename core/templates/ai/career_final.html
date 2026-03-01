@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+    <!-- Header -->
+    <div class="glass-panel rounded-2xl p-6 mb-8 fade-in-up">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-white mb-2">
+                    <i class="fa-solid fa-rocket text-purple-400 mr-3"></i>
+                    AI Career Guide
+                </h2>
+                <p class="text-slate-400">Type your academic stream to discover comprehensive career paths</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Career Analysis Form -->
+    <div class="glass-panel rounded-2xl p-6 mb-8 fade-in-up">
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-slate-300 text-sm font-medium mb-2">Enter Your Academic Stream</label>
+                    <input type="text" name="stream" required
+                           placeholder="e.g., Computer Science, Engineering, Business, Medicine, Arts..."
+                           value="{{ selected_stream }}"
+                           class="w-full p-3 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none">
+                    <p class="text-slate-500 text-xs mt-1">Type any stream - we'll find matching careers</p>
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" 
+                            class="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-purple-600 hover:to-indigo-600 transition-all transform hover:scale-105">
+                        <i class="fa-solid fa-search mr-2"></i>
+                        Discover Careers
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Career Predictions -->
+    {% if career_predictions %}
+    <div class="space-y-8">
+        <div class="text-center mb-6">
+            <h3 class="text-2xl font-bold text-white">
+                <i class="fa-solid fa-lightbulb text-purple-400 mr-3"></i>
+                Found {{ career_predictions|length }} Career Paths for "{{ selected_stream }}"
+            </h3>
+            <p class="text-slate-400 mt-2">Complete career journeys with step-by-step guidance</p>
+        </div>
+        
+        {% for career in career_predictions %}
+        <div class="glass-panel rounded-2xl p-8 fade-in-up">
+            <!-- Career Header -->
+            <div class="flex items-start justify-between mb-6">
+                <div class="flex-1">
+                    <h4 class="text-2xl font-bold text-white mb-3">{{ career.title }}</h4>
+                    <p class="text-slate-300 text-lg mb-4">{{ career.description }}</p>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-full text-sm font-medium">
+                            {{ career.average_salary }}
+                        </span>
+                        <span class="px-4 py-2 bg-green-500/20 text-green-300 rounded-full text-sm font-medium">
+                            <i class="fa-solid fa-chart-line mr-2"></i>{{ career.growth_rate }} Growth
+                        </span>
+                        <span class="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-full text-sm font-medium">
+                            <i class="fa-solid fa-graduation-cap mr-2"></i>{{ career.education_required }}
+                        </span>
+                    </div>
+                </div>
+                <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center ml-6">
+                    <i class="fa-solid fa-briefcase text-white text-3xl"></i>
+                </div>
+            </div>
+
+            <!-- Career Details -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Skills Section -->
+                <div class="border-l-4 border-purple-500 pl-4">
+                    <h5 class="text-lg font-semibold text-white mb-3">
+                        <i class="fa-solid fa-tools text-purple-400 mr-2"></i>Key Skills Required
+                    </h5>
+                    <div class="flex flex-wrap gap-2">
+                        {% for skill in career.skills_list %}
+                        <span class="px-3 py-1 bg-slate-700/50 text-slate-300 rounded-lg text-sm">
+                            {{ skill }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Industries Section -->
+                <div class="border-l-4 border-blue-500 pl-4">
+                    <h5 class="text-lg font-semibold text-white mb-3">
+                        <i class="fa-solid fa-building text-blue-400 mr-2"></i>Industries
+                    </h5>
+                    <div class="flex flex-wrap gap-2">
+                        {% for industry in career.industries_list %}
+                        <span class="px-3 py-1 bg-slate-700/50 text-slate-300 rounded-lg text-sm">
+                            {{ industry }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Outlook -->
+            <div class="border-l-4 border-green-500 pl-4 mb-6">
+                <h5 class="text-lg font-semibold text-white mb-3">
+                    <i class="fa-solid fa-chart-bar text-green-400 mr-2"></i>Job Outlook
+                </h5>
+                <p class="text-slate-300">{{ career.job_outlook }}</p>
+            </div>
+
+            <!-- Career Journey -->
+            {% if career.journey_steps.all %}
+            <div class="border-l-4 border-orange-500 pl-4">
+                <h5 class="text-xl font-semibold text-white mb-6">
+                    <i class="fa-solid fa-route text-orange-400 mr-2"></i>Complete Career Journey
+                </h5>
+                <div class="space-y-4">
+                    {% for step in career.journey_steps.all %}
+                    <div class="glass-panel rounded-xl p-5 relative">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                                <span class="text-orange-400 font-bold text-lg">{{ step.step_number }}</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="text-white font-bold text-lg mb-2">{{ step.step_title }}</h6>
+                                <p class="text-slate-300 mb-3">{{ step.step_description }}</p>
+                                <div class="flex flex-wrap gap-3 text-sm">
+                                    <span class="px-3 py-1 bg-slate-700/50 text-slate-300 rounded-lg font-medium">
+                                        <i class="fa-solid fa-clock mr-2"></i>{{ step.duration }}
+                                    </span>
+                                    {% if step.prerequisites %}
+                                    <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg font-medium">
+                                        <i class="fa-solid fa-book mr-2"></i>{{ step.prerequisites }}
+                                    </span>
+                                    {% endif %}
+                                    {% if step.outcomes %}
+                                    <span class="px-3 py-1 bg-green-500/20 text-green-300 rounded-lg font-medium">
+                                        <i class="fa-solid fa-trophy mr-2"></i>{{ step.outcomes }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if not forloop.last %}
+                        <div class="absolute left-6 top-12 w-0.5 h-8 bg-orange-500/30"></div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- No Results State -->
+    {% if selected_stream and not career_predictions %}
+    <div class="glass-panel rounded-2xl p-12 text-center fade-in-up">
+        <i class="fa-solid fa-search text-6xl text-slate-500 mb-4"></i>
+        <h3 class="text-xl font-semibold text-white mb-2">No Career Paths Found</h3>
+        <p class="text-slate-400 mb-6">
+            We couldn't find career paths for "{{ selected_stream }}". Try:
+        </p>
+        <div class="text-left max-w-md mx-auto space-y-2">
+            <p class="text-slate-300">✓ Computer Science</p>
+            <p class="text-slate-300">✓ Engineering</p>
+            <p class="text-slate-300">✓ Business</p>
+            <p class="text-slate-300">✓ Or type related keywords like "IT", "Mechanical", "Finance"</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Initial State -->
+    {% if not selected_stream %}
+    <div class="glass-panel rounded-2xl p-12 text-center fade-in-up">
+        <i class="fa-solid fa-compass text-6xl text-purple-400 mb-4"></i>
+        <h3 class="text-2xl font-bold text-white mb-4">Discover Your Complete Career Journey</h3>
+        <p class="text-slate-400 mb-8 max-w-2xl mx-auto">
+            Our AI-powered career guide analyzes your academic stream to provide comprehensive career recommendations 
+            with detailed step-by-step journey maps, required skills, and industry insights.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div class="glass-panel rounded-xl p-6">
+                <i class="fa-solid fa-brain text-purple-400 text-3xl mb-3"></i>
+                <h4 class="text-white font-semibold mb-2">AI Analysis</h4>
+                <p class="text-slate-400 text-sm">Smart predictions based on your field with flexible matching</p>
+            </div>
+            <div class="glass-panel rounded-xl p-6">
+                <i class="fa-solid fa-route text-purple-400 text-3xl mb-3"></i>
+                <h4 class="text-white font-semibold mb-2">Complete Journey</h4>
+                <p class="text-slate-400 text-sm">6-step career progression from education to leadership</p>
+            </div>
+            <div class="glass-panel rounded-xl p-6">
+                <i class="fa-solid fa-chart-line text-purple-400 text-3xl mb-3"></i>
+                <h4 class="text-white font-semibold mb-2">Market Insights</h4>
+                <p class="text-slate-400 text-sm">Salary, growth, skills, and industry data</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

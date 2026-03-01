@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">Study Planner</h1>
+        <p class="text-[14px] text-[var(--text-muted)]">Create optimized study schedules based on your exam dates and difficulty levels</p>
+    </div>
+
+    <!-- Study Plan Form -->
+    <div class="card rounded-[20px] p-8 mb-8">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Subject</label>
+                    <input
+                        type="text"
+                        name="subject"
+                        placeholder="e.g., Mathematics, Physics, Data Structures"
+                        class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Exam Date</label>
+                    <input
+                        type="date"
+                        name="exam_date"
+                        class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                        required
+                    >
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary px-8 py-3">
+                    <i class="fa-solid fa-calendar-plus mr-2"></i>
+                    Generate Study Plan
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Generated Study Plan -->
+    {% if plan %}
+        <div class="mb-6">
+            <h2 class="text-[16px] font-black text-[var(--text-dark)] mb-4">Your Study Schedule</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for item in plan %}
+                <div class="card p-6 fade-in-up">
+                    <div class="flex items-start gap-3">
+                        <div class="w-[38px] h-[38px] rounded-lg bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-book-open text-[var(--primary)] text-sm"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-[14px] text-[var(--text-dark)] leading-relaxed">
+                                {{ item|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Empty State -->
+    {% if not plan %}
+        <div class="card rounded-[20px] p-[60px_40px] text-center">
+            <div class="text-5xl mb-4">📅</div>
+            <h3 class="font-black text-[18px] text-[var(--text-dark)] mb-2">Create your study plan</h3>
+            <p class="text-[14px] text-[var(--text-muted)] mb-6">
+                Enter your subject and exam date to generate a personalized study schedule
+            </p>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <div class="status-badge status-default">Daily Tasks</div>
+                <div class="status-badge status-default">Weekly Goals</div>
+                <div class="status-badge status-default">Exam Prep</div>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

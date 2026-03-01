@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">
+                    <span class="text-2xl mr-3">👥</span>
+                    Study Groups
+                </h1>
+                <p class="text-[14px] text-[var(--text-muted)]">Collaborate, share notes, and study together</p>
+            </div>
+            <a href="{% url 'groups:group_create' %}" class="btn btn-primary">
+                <i class="fa-solid fa-plus mr-2"></i>
+                Create Group
+            </a>
+        </div>
+    </div>
+
+    <!-- Pending Invites -->
+    {% if pending_invites %}
+    <div class="card rounded-[20px] p-6 mb-8">
+        <h3 class="text-[16px] font-black text-[var(--text-dark)] mb-4">
+            <span class="text-lg mr-2">📨</span>
+            Pending Invites
+        </h3>
+        <div class="space-y-3">
+            {% for invite in pending_invites %}
+            <div class="card p-4 flex items-center justify-between">
+                <div>
+                    <h4 class="font-black text-[var(--text-dark)]">{{ invite.group.name }}</h4>
+                    <p class="text-[13px] text-[var(--text-muted)]">{{ invite.group.subject }} • Invited by {{ invite.invited_by.username }}</p>
+                </div>
+                <div class="flex gap-2">
+                    <form method="POST" action="{% url 'groups:accept_invite' invite.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-secondary px-4 py-2 text-[12px]">
+                            <i class="fa-solid fa-check mr-2"></i>Accept
+                        </button>
+                    </form>
+                    <form method="POST" action="{% url 'groups:reject_invite' invite.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger px-4 py-2 text-[12px]">
+                            <i class="fa-solid fa-times mr-2"></i>Reject
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Your Groups -->
+    <div class="card rounded-[20px] p-6 mb-8">
+        <h3 class="text-[16px] font-black text-[var(--text-dark)] mb-4">
+            <span class="text-lg mr-2">👥</span>
+            Your Groups
+        </h3>
+        
+        {% if user_groups %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for group in user_groups %}
+            <a href="{% url 'groups:group_detail' group.id %}" class="card p-6 block">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-[46px] h-[46px] rounded-xl flex items-center justify-center" style="background-color: #fff1f2;">
+                        <span class="text-xl">👥</span>
+                    </div>
+                    {% if group.created_by == user %}
+                    <span class="status-badge status-danger">Admin</span>
+                    {% endif %}
+                </div>
+                <h4 class="font-black text-[14px] text-[var(--text-dark)] mb-2">{{ group.name }}</h4>
+                <p class="text-[12px] text-[var(--text-muted)] mb-3">{{ group.subject }}</p>
+                <p class="text-[12px] text-[var(--text-muted)] mb-4 line-clamp-2">{{ group.description }}</p>
+                <div class="flex items-center justify-between text-[12px] text-[var(--text-muted)]">
+                    <span><i class="fa-solid fa-user mr-1"></i>{{ group.members.count }} members</span>
+                    <span><i class="fa-solid fa-calendar mr-1"></i>{{ group.created_at|date:"M d, Y" }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">👥</div>
+            <h3 class="text-[18px] font-black text-[var(--text-dark)] mb-2">No Study Groups Yet</h3>
+            <p class="text-[14px] text-[var(--text-muted)] mb-6">Create your first study group or wait for invitations from other students.</p>
+            <a href="{% url 'groups:group_create' %}" class="btn btn-primary">
+                <i class="fa-solid fa-plus mr-2"></i>
+                Create Your First Group
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

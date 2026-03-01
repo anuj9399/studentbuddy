@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">AI Assistant</h1>
+        <p class="text-[14px] text-[var(--text-muted)]">Get instant help with your engineering questions and study materials</p>
+    </div>
+
+    <!-- Chat Form -->
+    <div class="card rounded-[20px] p-8 mb-6">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Your Question</label>
+                <textarea name="message"
+                          placeholder="Ask anything about your studies, engineering concepts, or get help with assignments..."
+                          class="input w-full p-[10px_14px] rounded-xl text-[14px] h-32 resize-none"></textarea>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary px-8 py-3">
+                    <i class="fa-solid fa-paper-plane mr-2"></i>
+                    Ask AI
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- AI Response -->
+    {% if response %}
+        <div class="card rounded-[20px] p-8 fade-in-up">
+            <div class="flex items-start gap-4">
+                <div class="w-[46px] h-[46px] rounded-xl bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0">
+                    <span class="text-xl">🤖</span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-black text-[16px] text-[var(--text-dark)] mb-3">AI Response</h3>
+                    <div class="text-[14px] text-[var(--text-dark)] leading-relaxed">
+                        {{ response|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Empty State -->
+    {% if not response %}
+        <div class="card rounded-[20px] p-[60px_40px] text-center">
+            <div class="text-5xl mb-4">🤖</div>
+            <h3 class="font-black text-[18px] text-[var(--text-dark)] mb-2">Ready to help you learn</h3>
+            <p class="text-[14px] text-[var(--text-muted)] mb-6">
+                Ask me anything about engineering concepts, study strategies, or get help with your assignments
+            </p>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <div class="status-badge status-default">Engineering</div>
+                <div class="status-badge status-default">Mathematics</div>
+                <div class="status-badge status-default">Physics</div>
+                <div class="status-badge status-default">Programming</div>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

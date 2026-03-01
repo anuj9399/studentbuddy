@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% load grade_tags %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'grade_tracker:grade_dashboard' %}" class="text-[var(--primary)] hover:text-[var(--primary-light)] mb-4 inline-block">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back to Grade Tracker
+        </a>
+        <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">Add Semester</h1>
+        <p class="text-[14px] text-[var(--text-muted)]">Enter your semester details and subjects to calculate SGPA</p>
+    </div>
+
+    <!-- Mode Toggle -->
+    <div class="card rounded-[20px] p-6 mb-8">
+        <div class="flex items-center justify-center gap-4">
+            <span class="text-[var(--text-dark)] font-semibold">Entry Mode:</span>
+            <div class="flex bg-[var(--primary-soft)] rounded-lg p-1">
+                <button type="button" 
+                        id="simpleModeBtn"
+                        onclick="setMode('simple')"
+                        class="px-4 py-2 rounded-md text-sm font-medium transition-all mode-btn">
+                    Simple Mode
+                </button>
+                <button type="button" 
+                        id="detailedModeBtn"
+                        onclick="setMode('detailed')"
+                        class="px-4 py-2 rounded-md text-sm font-medium transition-all mode-btn bg-[var(--gradient)] text-white">
+                    Detailed Mode
+                </button>
+            </div>
+        </div>
+        <div class="text-center mt-3 text-[var(--text-muted)] text-sm">
+            <span id="modeDescription">Enter subjects individually with grades and credits</span>
+        </div>
+    </div>
+
+    <!-- Add Semester Form -->
+    <form id="semesterForm" method="post" class="space-y-8">
+        {% csrf_token %}
+        
+        <!-- Semester Information -->
+        <div class="card rounded-[20px] p-8">
+            <h2 class="text-[20px] font-black text-[var(--text-dark)] mb-6">
+                <i class="fa-solid fa-calendar-alt mr-2 text-[var(--primary)]"></i>
+                Semester Information
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Semester Number *</label>
+                    <select name="semester_number" 
+                            id="semester_number"
+                            class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                            required>
+                        {% for i in profile.total_semesters|as_range %}
+                            <option value="{{ i }}" {% if i == profile.current_semester %}selected{% endif %}>
+                                Semester {{ i }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Semester Name *</label>
+                    <input type="text" 
+                           name="semester_name" 
+                           id="semester_name"
+                           class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                           placeholder="e.g., Fall 2024, Semester 3"
+                           required>
+                </div>
+                
+                <div>
+                    <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Academic Year (Optional)</label>
+                    <input type="text" 
+                           name="academic_year" 
+                           id="academic_year"
+                           placeholder="e.g., 2023-2024"
+                           class="input w-full p-[10px_14px] rounded-xl text-[14px]">
+                </div>
+            </div>
+        </div>
+
+        <!-- Subjects Section -->
+        <div id="detailedModeSection" class="card rounded-[20px] p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-[20px] font-black text-[var(--text-dark)]">
+                    <i class="fa-solid fa-book mr-2 text-[var(--primary)]"></i>
+                    Subjects
+                </h2>
+                <button type="button" 
+                        onclick="addSubject()"
+                        class="btn btn-primary">
+                    <i class="fa-solid fa-plus mr-2"></i>
+                    Add Subject
+                </button>
+            </div>
+            
+            <!-- SGPA Preview -->
+            <div class="mb-6 p-4 bg-[var(--primary-soft)] rounded-xl">
+                <div class="flex items-center justify-between">
+                    <span class="text-[var(--text-dark)] font-semibold">Live SGPA Preview:</span>
+                    <span id="sgpaPreview" class="text-[24px] font-black text-[var(--primary)]">0.00</span>
+                </div>
+            </div>
+            
+            <!-- Subjects List -->
+            <div id="subjectsList" class="space-y-4">
+                <!-- Initial subject row -->
+                <div class="subject-row grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
+                    <div>
+                        <input type="text" 
+                               name="subject_name" 
+                               placeholder="Subject name"
+                               class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <select name="grade" 
+                                class="grade-select input w-full p-[10px_14px] rounded-xl text-[14px]"
+                                onchange="calculateSGPA()">
+                            {% for grade, points in grade_mapping.items %}
+                                <option value="{{ grade }}">{{ grade }} ({{ points }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <input type="number" 
+                               name="credit_hours" 
+                               placeholder="Credits"
+                               min="1" 
+                               max="10"
+                               value="3"
+                               class="credit-input input w-full p-[10px_14px] rounded-xl text-[14px]"
+                               onchange="calculateSGPA()"
+                               required>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <select name="subject_type" 
+                                class="flex-1 input p-[10px_14px] rounded-xl text-[14px]">
+                            <option value="core">Core</option>
+                            <option value="elective">Elective</option>
+                            <option value="lab">Lab</option>
+                        </select>
+                        <button type="button" 
+                                onclick="removeSubject(this)"
+                                class="p-3 text-[var(--text-muted)] hover:text-red-500 transition-colors">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simple Mode Section -->
+        <div id="simpleModeSection" class="card rounded-[20px] p-8 hidden">
+            <h2 class="text-[20px] font-black text-[var(--text-dark)] mb-6">
+                <i class="fa-solid fa-chart-line mr-2 text-[var(--primary)]"></i>
+                Quick SGPA Entry
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="sgpa" class="block text-[13px] font-black text-[var(--text-dark)] mb-2">
+                        Semester SGPA
+                    </label>
+                    <input type="number" 
+                           name="sgpa" 
+                           id="sgpa"
+                           step="0.01"
+                           min="0" 
+                           max="{{ profile.grading_scale }}"
+                           placeholder="e.g., 8.5"
+                           class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                           required>
+                </div>
+                
+                <div>
+                    <label for="total_credits" class="block text-[13px] font-black text-[var(--text-dark)] mb-2">
+                        Total Credits
+                    </label>
+                    <input type="number" 
+                           name="total_credits" 
+                           id="total_credits"
+                           min="1" 
+                           max="30"
+                           value="18"
+                           placeholder="e.g., 18"
+                           class="input w-full p-[10px_14px] rounded-xl text-[14px]"
+                           required>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-[var(--primary-soft)] rounded-xl border border-[var(--primary-border)]">
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-info-circle text-[var(--primary)] mt-1"></i>
+                    <div class="text-[var(--text-dark)]">
+                        <p class="font-black mb-1">Simple Mode</p>
+                        <p class="text-[13px]">Enter your SGPA directly if you already know it. This is perfect for quickly adding past semesters without entering individual subjects.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary px-8 py-4 text-lg">
+                <i class="fa-solid fa-save mr-2"></i>
+                Save Semester
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+let currentMode = 'detailed';
+let subjectCount = 1;
+
+function setMode(mode) {
+    currentMode = mode;
+    const simpleBtn = document.getElementById('simpleModeBtn');
+    const detailedBtn = document.getElementById('detailedModeBtn');
+    const simpleSection = document.getElementById('simpleModeSection');
+    const detailedSection = document.getElementById('detailedModeSection');
+    const modeDescription = document.getElementById('modeDescription');
+    
+    if (mode === 'simple') {
+        simpleBtn.classList.add('bg-purple-600', 'text-white');
+        simpleBtn.classList.remove('text-slate-400');
+        detailedBtn.classList.remove('bg-purple-600', 'text-white');
+        detailedBtn.classList.add('text-slate-400');
+        
+        simpleSection.classList.remove('hidden');
+        detailedSection.classList.add('hidden');
+        
+        modeDescription.textContent = 'Enter SGPA directly for quick semester entry';
+    } else {
+        detailedBtn.classList.add('bg-purple-600', 'text-white');
+        detailedBtn.classList.remove('text-slate-400');
+        simpleBtn.classList.remove('bg-purple-600', 'text-white');
+        simpleBtn.classList.add('text-slate-400');
+        
+        detailedSection.classList.remove('hidden');
+        simpleSection.classList.add('hidden');
+        
+        modeDescription.textContent = 'Enter subjects individually with grades and credits';
+    }
+}
+
+function addSubject() {
+    subjectCount++;
+    const subjectsList = document.getElementById('subjectsList');
+    
+    const subjectRow = document.createElement('div');
+    subjectRow.className = 'subject-row grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-800/50 rounded-lg fade-in';
+    
+    subjectRow.innerHTML = `
+        <div>
+            <input type="text" 
+                   name="subject_name" 
+                   placeholder="Subject name"
+                   class="w-full p-3 rounded-lg bg-slate-700/50 text-white border border-slate-600 focus:border-purple-500 focus:outline-none"
+                   required>
+        </div>
+        
+        <div>
+            <select name="grade" 
+                    class="grade-select w-full p-3 rounded-lg bg-slate-700/50 text-white border border-slate-600 focus:border-purple-500 focus:outline-none"
+                    onchange="calculateSGPA()">
+                {% for grade, points in grade_mapping.items %}
+                    <option value="{{ grade }}">{{ grade }} ({{ points }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <input type="number" 
+                   name="credit_hours" 
+                   placeholder="Credits"
+                   min="1" 
+                   max="10"
+                   value="3"
+                   class="credit-input w-full p-3 rounded-lg bg-slate-700/50 text-white border border-slate-600 focus:border-purple-500 focus:outline-none"
+                   onchange="calculateSGPA()"
+                   required>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <select name="subject_type" 
+                    class="flex-1 p-3 rounded-lg bg-slate-700/50 text-white border border-slate-600 focus:border-purple-500 focus:outline-none">
+                <option value="core">Core</option>
+                <option value="elective">Elective</option>
+                <option value="lab">Lab</option>
+            </select>
+            <button type="button" 
+                    onclick="removeSubject(this)"
+                    class="p-3 text-red-400 hover:text-red-300 transition-colors">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    subjectsList.appendChild(subjectRow);
+    calculateSGPA();
+}
+
+function removeSubject(button) {
+    const subjectRow = button.closest('.subject-row');
+    const subjectsList = document.getElementById('subjectsList');
+    
+    // Don't remove if it's the last subject
+    if (subjectsList.children.length > 1) {
+        subjectRow.remove();
+        calculateSGPA();
+    }
+}
+
+function calculateSGPA() {
+    if (currentMode === 'simple') return; // Skip calculation in simple mode
+    
+    const subjectRows = document.querySelectorAll('.subject-row');
+    let totalPoints = 0;
+    let totalCredits = 0;
+    
+    const gradeMapping = {
+        {% for grade, points in grade_mapping.items %}
+            '{{ grade }}': {{ points }},
+        {% endfor %}
+    };
+    
+    subjectRows.forEach(row => {
+        const gradeSelect = row.querySelector('.grade-select');
+        const creditInput = row.querySelector('.credit-input');
+        
+        if (gradeSelect && creditInput) {
+            const grade = gradeSelect.value;
+            const credits = parseFloat(creditInput.value) || 0;
+            const points = gradeMapping[grade] || 0;
+            
+            totalPoints += points * credits;
+            totalCredits += credits;
+        }
+    });
+    
+    const sgpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
+    const previewElement = document.getElementById('sgpaPreview');
+    if (previewElement) {
+        previewElement.textContent = sgpa;
+    }
+}
+
+// Auto-update semester name based on semester number
+document.getElementById('semester_number').addEventListener('change', function() {
+    const semesterNumber = this.value;
+    const semesterNameInput = document.getElementById('semester_name');
+    
+    if (!semesterNameInput.value) {
+        const ordinal = getOrdinalSuffix(parseInt(semesterNumber));
+        semesterNameInput.value = `Semester ${semesterNumber}`;
+    }
+});
+
+function getOrdinalSuffix(num) {
+    const suffixes = ['st', 'nd', 'rd', 'th'];
+    const value = num % 100;
+    return suffixes[(value - 20) % 10] || suffixes[value] || suffixes[0];
+}
+
+// Initialize SGPA calculation on page load
+document.addEventListener('DOMContentLoaded', function() {
+    calculateSGPA();
+});
+
+// Add fade-in animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+        animation: fadeIn 0.3s ease-out;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

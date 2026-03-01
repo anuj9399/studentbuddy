@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-[46px] h-[46px] rounded-xl bg-[var(--primary-soft)] flex items-center justify-center">
+                <span class="text-xl">📝</span>
+            </div>
+            <h1 class="text-[26px] font-black text-[var(--text-dark)]">Smart Notes</h1>
+        </div>
+        <p class="text-[14px] text-[var(--text-muted)]">Transform your lecture materials into concise study notes with AI</p>
+    </div>
+
+    <!-- Main Form -->
+    <div class="card rounded-[20px] p-8 mb-8">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Text Input Section -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">
+                    <i class="fa-solid fa-pen-to-square mr-2 text-[var(--primary)]"></i>
+                    Paste Your Notes
+                </label>
+                <textarea name="notes"
+                    placeholder="Paste lecture notes, transcripts, or study materials here..."
+                    class="input w-full h-48 p-[10px_14px] rounded-xl text-[14px] resize-none"></textarea>
+            </div>
+
+            <!-- Divider -->
+            <div class="flex items-center gap-4">
+                <div class="flex-1 h-px bg-[var(--border)]"></div>
+                <span class="text-[var(--text-muted)] text-sm font-bold">OR</span>
+                <div class="flex-1 h-px bg-[var(--border)]"></div>
+            </div>
+
+            <!-- PDF Upload Section -->
+            <div>
+                <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">
+                    <i class="fa-solid fa-file-pdf mr-2 text-[var(--primary)]"></i>
+                    Upload PDF Document
+                </label>
+                <div class="relative">
+                    <input type="file" 
+                           name="pdf" 
+                           accept=".pdf"
+                           class="input w-full p-[10px_14px] rounded-xl text-[14px] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-[var(--primary-soft)] file:text-[var(--primary)] hover:file:bg-[#ddd6fe] transition-all cursor-pointer">
+                    <p class="text-[var(--text-muted)] text-sm mt-2">Supported formats: PDF (max 50MB)</p>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-center gap-4 pt-4">
+                <button type="submit" class="btn btn-primary px-8 py-3">
+                    <span class="flex items-center gap-3">
+                        <i class="fa-solid fa-magic"></i>
+                        Generate Smart Summary
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </span>
+                </button>
+                
+                <!-- Test Button -->
+                <button type="button" onclick="testWithSampleText()" class="btn btn-secondary px-6 py-3">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-flask"></i>
+                        Test with Sample
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Output Section -->
+    {% if summary %}
+    <div class="card rounded-[20px] p-8 fade-in-up">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-[38px] h-[38px] rounded-lg bg-[#dcfce7] flex items-center justify-center">
+                <i class="fa-solid fa-check text-[#15803d] text-sm"></i>
+            </div>
+            <h3 class="text-[16px] font-black text-[var(--text-dark)]">Your Smart Summary</h3>
+        </div>
+        
+        <div class="bg-[var(--bg)] rounded-xl p-6 border border-[var(--border)]">
+            <div class="text-[var(--text-dark)] leading-relaxed whitespace-pre-wrap">
+                {{ summary }}
+            </div>
+        </div>
+        
+        <div class="mt-6 flex gap-4">
+            <button onclick="copySummary()" class="btn btn-secondary px-4 py-2">
+                <i class="fa-solid fa-copy mr-2"></i>
+                Copy Summary
+            </button>
+            <button onclick="downloadSummary()" class="btn btn-secondary px-4 py-2">
+                <i class="fa-solid fa-download mr-2"></i>
+                Download
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Error Messages -->
+    {% if summary and "error" in summary.lower %}
+    <div class="card rounded-[20px] p-6 border-l-4 border-red-500 fade-in-up">
+        <div class="flex items-center gap-3">
+            <div class="w-[38px] h-[38px] rounded-lg bg-[#fff1f2] flex items-center justify-center">
+                <i class="fa-solid fa-exclamation-triangle text-[#be123c] text-sm"></i>
+            </div>
+            <div>
+                <h4 class="text-[#be123c] font-black mb-1">Processing Issue</h4>
+                <p class="text-[var(--text-dark)]">{{ summary }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Empty State -->
+    {% if not summary %}
+        <div class="card rounded-[20px] p-[60px_40px] text-center">
+            <div class="text-5xl mb-4">📝</div>
+            <h3 class="font-black text-[18px] text-[var(--text-dark)] mb-2">Transform your notes</h3>
+            <p class="text-[14px] text-[var(--text-muted)] mb-6">
+                Paste your lecture notes or upload a PDF to generate AI-powered summaries
+            </p>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <div class="status-badge status-info">Text Processing</div>
+                <div class="status-badge status-info">PDF Support</div>
+                <div class="status-badge status-info">AI Summary</div>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<script>
+function copySummary() {
+    const summaryText = document.querySelector('.whitespace-pre-wrap')?.textContent || document.querySelector('.bg-\\[var\\(--bg\\)\\]')?.textContent;
+    if (summaryText) {
+        navigator.clipboard.writeText(summaryText).then(() => {
+            const button = event.target.closest('button');
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Copied!';
+            button.classList.add('status-badge', 'status-success');
+            
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+                button.classList.remove('status-badge', 'status-success');
+            }, 2000);
+        });
+    }
+}
+
+function downloadSummary() {
+    const summaryText = document.querySelector('.whitespace-pre-wrap')?.textContent || document.querySelector('.bg-\\[var\\(--bg\\)\\]')?.textContent;
+    if (summaryText) {
+        const blob = new Blob([summaryText], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'smart-notes-summary.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+}
+
+document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+    
+    if (file) {
+        if (file.size > maxSize) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert-error mt-2';
+            errorDiv.innerHTML = `<i class="fa-solid fa-exclamation-triangle mr-2"></i>File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds 50MB limit. Please choose a smaller file.`;
+            
+            const existingError = e.target.parentElement.querySelector('.alert-error');
+            if (existingError) existingError.remove();
+            
+            e.target.parentElement.appendChild(errorDiv);
+            e.target.value = '';
+            
+            setTimeout(() => errorDiv.remove(), 5000);
+            return;
+        }
+        
+        const existingError = e.target.parentElement.querySelector('.alert-error');
+        if (existingError) existingError.remove();
+        
+        const successDiv = document.createElement('div');
+        successDiv.className = 'alert-success mt-2';
+        successDiv.innerHTML = `<i class="fa-solid fa-check-circle mr-2"></i>File ready for processing`;
+        
+        const existingSuccess = e.target.parentElement.querySelector('.alert-success');
+        if (existingSuccess) existingSuccess.remove();
+        
+        e.target.parentElement.appendChild(successDiv);
+        setTimeout(() => successDiv.remove(), 3000);
+    }
+});
+
+function testWithSampleText() {
+    const sampleText = `Introduction to Machine Learning
+
+Machine Learning is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed. It focuses on developing computer programs that can access data and use it to learn for themselves.
+
+Key Concepts:
+1. Supervised Learning: Learning with labeled training data
+2. Unsupervised Learning: Finding patterns in unlabeled data  
+3. Reinforcement Learning: Learning through rewards and punishments
+
+Common Applications:
+- Image recognition and computer vision
+- Natural language processing
+- Recommendation systems
+- Autonomous vehicles
+- Medical diagnosis
+
+The process typically involves:
+1. Data collection and preprocessing
+2. Feature extraction and selection
+3. Model training and validation
+4. Deployment and monitoring
+
+Machine Learning algorithms can be categorized into:
+- Classification algorithms (predicting categories)
+- Regression algorithms (predicting continuous values)
+- Clustering algorithms (grouping similar data)
+- Dimensionality reduction (simplifying complex data)`;
+
+    const textarea = document.querySelector('textarea[name="notes"]');
+    textarea.value = sampleText;
+    textarea.scrollIntoView({ behavior: 'smooth' });
+    
+    textarea.classList.add('ring-2', 'ring-[#a78bfa]', 'ring-opacity-50');
+    setTimeout(() => {
+        textarea.classList.remove('ring-2', 'ring-[#a78bfa]', 'ring-opacity-50');
+    }, 2000);
+}
+</script>
+
+{% endblock %}

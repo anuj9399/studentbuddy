@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+    <!-- Header -->
+    <div class="card rounded-[20px] p-6 mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">
+                    <i class="fa-solid fa-users text-[var(--primary)] mr-3"></i>
+                    {{ group.name }}
+                </h1>
+                <p class="text-[14px] text-[var(--text-muted)]">{{ group.subject }} • {{ group.members.count }} members</p>
+            </div>
+            <div class="flex gap-3">
+                {% if is_admin %}
+                <button class="px-4 py-2 bg-[#f5f3ff] text-[#9491b4] rounded-[10px] cursor-not-allowed" disabled>
+                    <i class="fa-solid fa-user-plus mr-2"></i>Invite Members — Coming Soon
+                </button>
+                <button onclick="deleteGroup()" 
+                        class="btn btn-danger">
+                    <i class="fa-solid fa-trash mr-2"></i>
+                    Delete Group
+                </button>
+                {% endif %}
+                <a href="{% url 'groups:group_list' %}" class="btn btn-secondary">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>
+                    Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Description -->
+    <div class="card rounded-[20px] p-6 mb-8">
+        <p class="text-[14px] text-[var(--text-dark)]">{{ group.description }}</p>
+        <div class="flex items-center gap-4 mt-4 text-[13px] text-[var(--text-muted)]">
+            <span><i class="fa-solid fa-user mr-2"></i>Created by {{ group.created_by.username }}</span>
+            <span><i class="fa-solid fa-calendar mr-2"></i>{{ group.created_at|date:"M d, Y" }}</span>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="card rounded-[20px] p-6">
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-[var(--border)] mb-6">
+            <button onclick="switchTab('chat')" id="chat-tab" 
+                    class="px-4 py-3 text-[var(--primary)] border-b-2 border-[var(--primary)] font-black transition-colors">
+                <i class="fa-solid fa-comments mr-2"></i>Chat
+            </button>
+            <button onclick="switchTab('notes')" id="notes-tab" 
+                    class="px-4 py-3 text-[var(--text-muted)] hover:text-[var(--text-dark)] font-medium transition-colors">
+                <i class="fa-solid fa-sticky-note mr-2"></i>Shared Notes
+            </button>
+            <button onclick="switchTab('files')" id="files-tab" 
+                    class="px-4 py-3 text-[var(--text-muted)] hover:text-[var(--text-dark)] font-medium transition-colors">
+                <i class="fa-solid fa-folder mr-2"></i>Files
+            </button>
+            <button onclick="switchTab('members')" id="members-tab" 
+                    class="px-4 py-3 text-[var(--text-muted)] hover:text-[var(--text-dark)] font-medium transition-colors">
+                <i class="fa-solid fa-user-group mr-2"></i>Members
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tab-content">
+            <!-- Chat Tab -->
+            <div id="chat-content" class="tab-content">
+                <div class="h-96 flex flex-col">
+                    <div id="chat-messages" class="flex-1 overflow-y-auto space-y-3 mb-4 p-4 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
+                        {% for message in messages %}
+                        <div class="flex items-start gap-3" data-message-id="{{ message.id }}">
+                            <div class="w-8 h-8 rounded-full bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0">
+                                <span class="text-[var(--primary)] text-xs font-black">{{ message.sender.username.0|upper }}</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-[var(--text-dark)] font-black">{{ message.sender.username }}</span>
+                                    <span class="text-[11px] text-[var(--text-muted)]">{{ message.timestamp|date:"H:i" }}</span>
+                                    {% if message.sender == request.user or is_admin %}
+                                    {% if is_admin %}
+                                    <button class="px-4 py-2 bg-[#f5f3ff] text-[#9491b4] rounded-[10px] cursor-not-allowed" disabled>
+                                        <i class="fa-solid fa-user-plus mr-2"></i>Invite Members — Coming Soon
+                                    </button>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                                <p class="text-[13px] text-[var(--text-dark)]">{{ message.message }}</p>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-8">
+                            <p class="text-[var(--text-muted)]">No messages yet. Start the conversation! 💬</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="message-input" 
+                               placeholder="Type your message..."
+                               class="input flex-1 p-[10px_14px] rounded-xl text-[14px]">
+                        <button onclick="sendMessage()" 
+                                class="btn btn-primary px-6 py-3">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shared Notes Tab -->
+            <div id="notes-content" class="tab-content hidden">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-[18px] font-black text-[var(--text-dark)]">Collaborative Notes</h3>
+                        <span id="last-edited" class="text-[13px] text-[var(--text-muted)]">
+                            Last edited by {{ shared_note.last_edited_by.username|default:"No one" }} at {{ shared_note.updated_at|date:"H:i" }}
+                        </span>
+                    </div>
+                    <textarea id="shared-notes" 
+                              placeholder="Start taking notes together... This is a collaborative notepad that auto-saves."
+                              class="input w-full h-80 p-[10px_14px] rounded-xl text-[14px] resize-none">{{ shared_note.content }}</textarea>
+                    <div class="text-[13px] text-[var(--text-muted)]">
+                        <i class="fa-solid fa-info-circle mr-2"></i>
+                        Notes auto-save every 3 seconds when you're typing
+                    </div>
+                </div>
+            </div>
+
+            <!-- Files Tab -->
+            <div id="files-content" class="tab-content hidden">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-[18px] font-black text-[var(--text-dark)]">Shared Files</h3>
+                        <form method="POST" enctype="multipart/form-data" action="{% url 'groups:upload_file' group.id %}" class="flex gap-2">
+                            {% csrf_token %}
+                            <input type="file" name="file" id="file-input" class="hidden">
+                            <button type="button" onclick="document.getElementById('file-input').click()" 
+                                    class="btn btn-secondary">
+                                <i class="fa-solid fa-upload mr-2"></i>Upload File
+                            </button>
+                            <button type="submit" 
+                                    class="btn btn-primary">
+                                <i class="fa-solid fa-save mr-2"></i>Save
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        {% for file in files %}
+                        <div class="flex items-center justify-between p-4 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-[var(--primary-soft)] rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-file text-[var(--primary)]"></i>
+                                </div>
+                                <div>
+                                    <div class="font-black text-[var(--text-dark)]">{{ file.filename }}</div>
+                                    <div class="text-[11px] text-[var(--text-muted)]">
+                                        Uploaded by {{ file.uploaded_by.username }} • {{ file.uploaded_at|timesince }} ago
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="{{ file.file.url }}" 
+                               class="btn btn-secondary px-4 py-2 text-sm">
+                                <i class="fa-solid fa-download mr-2"></i>Download
+                            </a>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-8">
+                            <p class="text-[var(--text-muted)]">No files shared yet.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members Tab -->
+            <div id="members-content" class="tab-content hidden">
+                <div class="space-y-4">
+                    <h3 class="text-[18px] font-black text-[var(--text-dark)]">Group Members ({{ group.members.count }})</h3>
+                    
+                    <div class="space-y-3">
+                        {% for member in group.members.all %}
+                        <div class="flex items-center justify-between p-4 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-[var(--primary-soft)] rounded-full flex items-center justify-center">
+                                    <span class="text-[var(--primary)] font-black">{{ member.username.0|upper }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-black text-[var(--text-dark)]">{{ member.username }}</div>
+                                    <div class="text-[11px] text-[var(--text-muted)]">
+                                        {% if member == group.created_by %}Group Admin{% else %}Member{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if is_admin and member != request.user %}
+                            <button onclick="removeMember('{{ member.id }}')" 
+                                    class="btn btn-danger px-4 py-2 text-sm">
+                                <i class="fa-solid fa-user-minus mr-2"></i>Remove
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tab switching
+function switchTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Remove active state from all tabs
+    document.querySelectorAll('[id$="-tab"]').forEach(tab => {
+        tab.classList.remove('text-[var(--primary)]', 'border-b-2', 'border-[var(--primary)]', 'font-black');
+        tab.classList.add('text-[var(--text-muted)]');
+    });
+    
+    // Show selected tab content
+    document.getElementById(tabName + '-content').classList.remove('hidden');
+    
+    // Add active state to selected tab
+    const activeTab = document.getElementById(tabName + '-tab');
+    activeTab.classList.remove('text-[var(--text-muted)]');
+    activeTab.classList.add('text-[var(--primary)]', 'border-b-2', 'border-[var(--primary)]', 'font-black');
+}
+
+// Chat functionality
+function sendMessage() {
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+    
+    if (message) {
+        // Send message via WebSocket or AJAX
+        input.value = '';
+        // Add message to chat
+        addMessageToChat('You', message, new Date());
+    }
+}
+
+function addMessageToChat(sender, message, timestamp) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'flex items-start gap-3';
+    messageDiv.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0">
+            <span class="text-[var(--primary)] text-xs font-black">${sender.charAt(0).toUpperCase()}</span>
+        </div>
+        <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="text-[var(--text-dark)] font-black">${sender}</span>
+                <span class="text-[11px] text-[var(--text-muted)]">${timestamp.toLocaleTimeString()}</span>
+            </div>
+            <p class="text-[13px] text-[var(--text-dark)]">${message}</p>
+        </div>
+    `;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Initialize chat tab as active
+document.addEventListener('DOMContentLoaded', function() {
+    switchTab('chat');
+});
+</script>
+
+{% endblock %}

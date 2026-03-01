@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #f8f7ff;
+            --white: #ffffff;
+            --primary: #6d28d9;
+            --primary-light: #7c3aed;
+            --primary-soft: #ede9fe;
+            --primary-border: #ddd6fe;
+            --text-dark: #1a1a2e;
+            --text-muted: #9491b4;
+            --border: #eee8ff;
+            --gradient: linear-gradient(135deg, #6d28d9, #4f46e5);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Nunito', sans-serif; 
+            background: var(--gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .signup-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 420px;
+            width: 100%;
+            margin: auto;
+            box-shadow: 0 24px 64px rgba(109,40,217,0.25);
+            position: relative;
+            z-index: 10;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-dark);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(109,40,217,0.1);
+        }
+        
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .label-text {
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .submit-btn {
+            background: var(--gradient);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 16px;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            display: block;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(109,40,217,0.3);
+        }
+        
+        .link-text {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        
+        .link-text:hover {
+            color: var(--primary-light);
+        }
+        
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.6;
+        }
+        
+        .blob-1 {
+            top: -10%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: rgba(109,40,217,0.3);
+        }
+        
+        .blob-2 {
+            bottom: -10%;
+            left: -10%;
+            width: 350px;
+            height: 350px;
+            background: rgba(79,70,229,0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    
+    <div class="signup-card">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-[var(--primary-soft)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl">🎓</span>
+            </div>
+            <h2 class="text-[28px] font-black text-[var(--text-dark)] tracking-tight mb-2">Join StudentBuddy</h2>
+            <p class="text-[14px] text-[var(--text-muted)]">Step into the future of learning</p>
+        </div>
+
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="label-text">Username</label>
+                    <input type="text" 
+                           name="username" 
+                           class="input-field"
+                           placeholder="Choose a username"
+                           required>
+                </div>
+                
+                <div>
+                    <label class="label-text">Email</label>
+                    <input type="email" 
+                           name="email" 
+                           class="input-field"
+                           placeholder="your.email@example.com"
+                           required>
+                </div>
+                
+                <div>
+                    <label class="label-text">First Name</label>
+                    <input type="text" 
+                           name="first_name" 
+                           class="input-field"
+                           placeholder="John"
+                           required>
+                </div>
+                
+                <div>
+                    <label class="label-text">Last Name</label>
+                    <input type="text" 
+                           name="last_name" 
+                           class="input-field"
+                           placeholder="Doe"
+                           required>
+                </div>
+                
+                <div>
+                    <label class="label-text">Password</label>
+                    <input type="password" 
+                           name="password1" 
+                           class="input-field"
+                           placeholder="Create a strong password"
+                           required>
+                </div>
+                
+                <div>
+                    <label class="label-text">Confirm Password</label>
+                    <input type="password" 
+                           name="password2" 
+                           class="input-field"
+                           placeholder="Confirm your password"
+                           required>
+                </div>
+            </div>
+            
+            <button type="submit" class="submit-btn mt-6">
+                <i class="fa-solid fa-user-plus mr-2"></i>
+                Create Account
+            </button>
+        </form>
+        
+        <div class="text-center mt-6">
+            <p class="text-[13px] text-[var(--text-muted)]">
+                Already have an account? 
+                <a href="{% url 'login' %}" class="link-text">Sign in</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

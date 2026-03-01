@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto">
+
+    <h2 class="text-4xl font-bold text-white mb-8">
+        Smart Notes ✨
+    </h2>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Text input -->
+        <textarea name="notes"
+            placeholder="Paste lecture notes or transcript here..."
+            class="w-full h-48 p-6 rounded-2xl bg-slate-800 text-white border border-slate-700 focus:outline-none focus:border-purple-500"></textarea>
+
+        <!-- PDF upload -->
+        <div class="flex items-center gap-4">
+            <input type="file" name="pdf"
+                class="text-slate-300">
+
+            <button type="submit"
+                class="bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90">
+                Summarize Notes
+            </button>
+        </div>
+    </form>
+
+    <!-- Output -->
+    {% if summary %}
+    <div class="mt-10 glass-panel p-8 rounded-3xl text-slate-200 whitespace-pre-wrap">
+        {{ summary }}
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'planner' %}" class="text-purple-400 hover:text-purple-300 mb-4 inline-block">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back to Study Planner
+        </a>
+        <h1 class="text-4xl font-bold text-white mb-2">Create Study Plan</h1>
+        <p class="text-slate-400">Let AI create an optimized study schedule for your exams</p>
+    </div>
+
+    <!-- Create Plan Form -->
+    <form id="createPlanForm" class="space-y-8">
+        <!-- Step 1: Basic Info -->
+        <div class="glass-panel rounded-2xl p-8 border border-slate-700/50">
+            <h2 class="text-2xl font-bold text-white mb-6">
+                <i class="fa-solid fa-info-circle mr-2 text-purple-400"></i>
+                Basic Information
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="title" class="block text-lg font-semibold text-white mb-3">
+                        Plan Title
+                    </label>
+                    <input type="text" 
+                           name="title" 
+                           id="title"
+                           placeholder="e.g., Final Exam Preparation, Midterm Study Plan"
+                           class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg"
+                           required>
+                </div>
+                
+                <div>
+                    <label for="exam_date" class="block text-lg font-semibold text-white mb-3">
+                        Exam Date
+                    </label>
+                    <input type="date" 
+                           name="exam_date" 
+                           id="exam_date"
+                           class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg"
+                           required>
+                </div>
+            </div>
+            
+            <div class="mt-6">
+                <label for="hours_per_day" class="block text-lg font-semibold text-white mb-3">
+                    Study Hours Per Day: <span id="hoursValue" class="text-purple-400">6</span> hours
+                </label>
+                <input type="range" 
+                       name="hours_per_day" 
+                       id="hours_per_day"
+                       min="1" 
+                       max="12" 
+                       value="6"
+                       class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider">
+                <div class="flex justify-between text-slate-400 text-sm mt-2">
+                    <span>1 hour</span>
+                    <span>6 hours</span>
+                    <span>12 hours</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Add Subjects -->
+        <div class="glass-panel rounded-2xl p-8 border border-slate-700/50">
+            <h2 class="text-2xl font-bold text-white mb-6">
+                <i class="fa-solid fa-book mr-2 text-purple-400"></i>
+                Add Subjects
+            </h2>
+            
+            <div class="flex gap-4 mb-6">
+                <input type="text" 
+                       id="subjectInput"
+                       placeholder="Subject name (e.g., Mathematics, Physics, Chemistry)"
+                       class="flex-1 p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg">
+                
+                <select id="difficultySelect" 
+                        class="px-4 py-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+                
+                <button type="button" 
+                        onclick="addSubject()"
+                        class="px-6 py-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all font-semibold">
+                    <i class="fa-solid fa-plus mr-2"></i>
+                    Add Subject
+                </button>
+            </div>
+            
+            <!-- Subjects List -->
+            <div id="subjectsList" class="space-y-3">
+                <!-- Subjects will be added here dynamically -->
+            </div>
+            
+            <div class="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                <div class="flex items-center gap-3 text-blue-300">
+                    <i class="fa-solid fa-info-circle"></i>
+                    <span>Add at least 2 subjects for better AI optimization</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="text-center">
+            <button type="submit" 
+                    id="generateButton"
+                    class="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg font-semibold text-lg">
+                <i class="fa-solid fa-brain mr-2"></i>
+                <span id="generateButtonText">Generate AI Schedule</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="glass-panel rounded-2xl p-8 max-w-md w-full mx-4">
+        <div class="text-center">
+            <div class="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+            </div>
+            
+            <h3 class="text-xl font-semibold text-white mb-4">Creating Your Study Plan</h3>
+            
+            <div id="loadingSteps" class="space-y-3 text-left">
+                <div class="flex items-center gap-3 text-slate-400">
+                    <i class="fa-solid fa-circle text-xs" id="step1"></i>
+                    <span id="step1Text">Analyzing your subjects...</span>
+                </div>
+                <div class="flex items-center gap-3 text-slate-400">
+                    <i class="fa-solid fa-circle text-xs" id="step2"></i>
+                    <span id="step2Text">Calculating optimal distribution...</span>
+                </div>
+                <div class="flex items-center gap-3 text-slate-400">
+                    <i class="fa-solid fa-circle text-xs" id="step3"></i>
+                    <span id="step3Text">Building your personalized schedule...</span>
+                </div>
+                <div class="flex items-center gap-3 text-slate-400">
+                    <i class="fa-solid fa-circle text-xs" id="step4"></i>
+                    <span id="step4Text">Almost ready...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let subjects = [];
+
+// Hours slider
+document.getElementById('hours_per_day').addEventListener('input', function(e) {
+    document.getElementById('hoursValue').textContent = e.target.value;
+});
+
+// Add subject function
+function addSubject() {
+    const subjectInput = document.getElementById('subjectInput');
+    const difficultySelect = document.getElementById('difficultySelect');
+    
+    const subjectName = subjectInput.value.trim();
+    const difficulty = difficultySelect.value;
+    
+    if (!subjectName) {
+        showNotification('Please enter a subject name', 'error');
+        return;
+    }
+    
+    // Check for duplicates
+    if (subjects.some(s => s.name === subjectName)) {
+        showNotification('Subject already added', 'error');
+        return;
+    }
+    
+    subjects.push({
+        name: subjectName,
+        difficulty: difficulty
+    });
+    
+    updateSubjectsList();
+    
+    // Clear inputs
+    subjectInput.value = '';
+    difficultySelect.value = 'medium';
+    subjectInput.focus();
+}
+
+function updateSubjectsList() {
+    const subjectsList = document.getElementById('subjectsList');
+    
+    if (subjects.length === 0) {
+        subjectsList.innerHTML = '<p class="text-slate-400 text-center py-8">No subjects added yet</p>';
+        return;
+    }
+    
+    subjectsList.innerHTML = subjects.map((subject, index) => `
+        <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                    <i class="fa-solid fa-book text-purple-400"></i>
+                </div>
+                <div>
+                    <div class="text-white font-medium">${subject.name}</div>
+                    <div class="text-slate-400 text-sm">Difficulty: ${subject.difficulty}</div>
+                </div>
+            </div>
+            <button type="button" onclick="removeSubject(${index})" 
+                    class="px-3 py-2 text-red-400 hover:text-red-300 transition-colors">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function removeSubject(index) {
+    subjects.splice(index, 1);
+    updateSubjectsList();
+}
+
+// Form submission
+document.getElementById('createPlanForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (subjects.length < 2) {
+        showNotification('Please add at least 2 subjects', 'error');
+        return;
+    }
+    
+    // Show loading modal
+    const modal = document.getElementById('loadingModal');
+    const generateButton = document.getElementById('generateButton');
+    
+    modal.classList.remove('hidden');
+    generateButton.disabled = true;
+    generateButton.classList.add('opacity-50', 'cursor-not-allowed');
+    
+    // Animate steps
+    const steps = [
+        { id: 'step1', text: 'step1Text', delay: 0 },
+        { id: 'step2', text: 'step2Text', delay: 1000 },
+        { id: 'step3', text: 'step3Text', delay: 2000 },
+        { id: 'step4', text: 'step4Text', delay: 3000 }
+    ];
+    
+    steps.forEach(step => {
+        setTimeout(() => {
+            document.getElementById(step.id).classList.add('text-purple-400');
+            document.getElementById(step.id).classList.remove('text-slate-400');
+        }, step.delay);
+    });
+    
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('title', document.getElementById('title').value);
+    formData.append('exam_date', document.getElementById('exam_date').value);
+    formData.append('hours_per_day', document.getElementById('hours_per_day').value);
+    
+    subjects.forEach(subject => {
+        formData.append('subjects', subject.name);
+        formData.append('difficulties', subject.difficulty);
+    });
+    
+    // Submit form
+    fetch('{% url "create_plan" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            setTimeout(() => {
+                showNotification('Study plan created successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = `/chat/planner/${data.plan_id}/`;
+                }, 1500);
+            }, 1000);
+        } else {
+            modal.classList.add('hidden');
+            showNotification(data.message || 'Failed to create study plan', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        modal.classList.add('hidden');
+        showNotification('Failed to create study plan', 'error');
+    })
+    .finally(() => {
+        generateButton.disabled = false;
+        generateButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 fade-in ${
+        type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center gap-2">
+            <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Initialize
+updateSubjectsList();
+document.getElementById('subjectInput').focus();
+
+// Add Enter key support for subject input
+document.getElementById('subjectInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        addSubject();
+    }
+});
+</script>
+
+<style>
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #7C3AED, #3B82F6);
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #7C3AED, #3B82F6);
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+}
+</style>
+{% endblock %}

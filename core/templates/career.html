@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">Career Guide</h1>
+        <p class="text-[14px] text-[var(--text-muted)]">AI-powered career suggestions based on your academic profile</p>
+    </div>
+
+    <p class="mb-6 text-[var(--text-muted)]">
+        Based on your stream: <strong class="text-[var(--text-dark)]">{{ profile.stream }}</strong>
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for career in suggestions %}
+        <div class="card p-6">
+            <h3 class="text-[18px] font-black text-[var(--text-dark)] mb-2">{{ career }}</h3>
+            <p class="text-[13px] text-[var(--text-muted)] leading-relaxed">
+                Explore career opportunities and growth prospects in this field.
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not suggestions %}
+        <!-- Empty State -->
+        <div class="text-center py-16">
+            <div class="w-32 h-32 bg-[var(--primary-soft)] rounded-full flex items-center justify-center mx-auto mb-8">
+                <span class="text-4xl">🚀</span>
+            </div>
+            <h2 class="text-[24px] font-black text-[var(--text-dark)] mb-4">No Career Suggestions Yet</h2>
+            <p class="text-[var(--text-muted)] text-lg mb-8">
+                Complete your profile to get personalized career recommendations
+            </p>
+            <a href="{% url 'profile' %}" class="btn btn-primary">
+                <i class="fa-solid fa-user mr-2"></i>
+                Update Profile
+            </a>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

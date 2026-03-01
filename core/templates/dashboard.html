@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% load grade_filters %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto">
+
+    <!-- HERO BANNER -->
+    <div class="card rounded-[22px] p-[34px_38px] mb-8 fade-in-up relative overflow-hidden" style="background: var(--gradient);">
+        <!-- Decorative blobs -->
+        <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full"></div>
+        <div class="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full"></div>
+        
+        <div class="relative z-10">
+            <div class="text-white opacity-60 text-xs mb-2" id="current-date"></div>
+            <h1 class="text-white text-[30px] font-black mb-2">
+                Welcome back, {{ request.user.first_name|default:request.user.username }} 👋
+            </h1>
+            <p class="text-white opacity-65 text-[14px] font-normal">
+                Ready to conquer your academic goals today?
+            </p>
+            
+            <!-- Chips row -->
+            <div class="flex gap-2 mt-4">
+                <div class="bg-white bg-opacity-20 text-white text-xs px-3 py-1 rounded-full">
+                    🔥 {{ study_streak }} day streak
+                </div>
+                <div class="bg-white bg-opacity-20 text-white text-xs px-3 py-1 rounded-full">
+                    📚 Sem {{ user.semester|default:"X" }}
+                </div>
+                <div class="bg-white bg-opacity-20 text-white text-xs px-3 py-1 rounded-full">
+                    📅 {{ tasks_pending }} tasks pending
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-[13px] mb-12">
+
+        <!-- Tasks Pending Card -->
+        <a href="{% url 'tasks' %}" class="block">
+            <div class="card p-[18px_22px] fade-in-up fade-in-up-delay-1">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-[var(--text-muted)] text-sm font-bold mb-1">Tasks Pending</p>
+                        <p class="text-3xl font-black text-[var(--text-dark)]">{{ tasks_pending }}</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                        <i class="fa-solid fa-list-check text-white"></i>
+                    </div>
+                </div>
+                <div class="text-xs text-[var(--text-muted)]">
+                    Click to manage →
+                </div>
+            </div>
+        </a>
+
+        <!-- Study Streak Card -->
+        <div class="card p-[18px_22px] fade-in-up fade-in-up-delay-2">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-[var(--text-muted)] text-sm font-bold mb-1">Study Streak</p>
+                    <p class="text-3xl font-black text-[var(--text-dark)]">{{ study_streak }} Days</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                    <i class="fa-solid fa-fire text-white"></i>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 75%"></div>
+            </div>
+        </div>
+
+        <!-- Mastery Card -->
+        <div class="card p-[18px_22px] fade-in-up fade-in-up-delay-3">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-[var(--text-muted)] text-sm font-bold mb-1">Mastery</p>
+                    <p class="text-3xl font-black text-[var(--text-dark)]">{{ mastery_percentage|floatformat:0 }}%</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                    <i class="fa-solid fa-award text-white"></i>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ mastery_percentage|floatformat:0 }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEATURE CARDS GRID -->
+    <style>
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+        
+        .feature-card {
+            background: white;
+            border: 1px solid #eee8ff;
+            border-radius: 18px;
+            padding: 24px 20px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            transition: all 0.25s ease;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 2px 10px rgba(109,40,217,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-6px);
+            border-color: #c4b5fd;
+            box-shadow: 0 16px 40px rgba(109,40,217,0.15);
+            background: #fdfcff;
+        }
+        
+        .feature-card:hover .feature-icon-wrap {
+            transform: scale(1.1);
+        }
+        
+        .feature-icon-wrap {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+        }
+        
+        .feature-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        .feature-desc {
+            font-size: 12px;
+            color: #9491b4;
+            line-height: 1.55;
+            flex: 1;
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        .feature-badge {
+            display: inline-block;
+            margin-top: 14px;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        /* Add a subtle top colored line on hover */
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: 18px 18px 0 0;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        
+        .feature-card:hover::before { opacity: 1; }
+        
+        /* Individual card colors */
+        .card-purple .feature-icon-wrap { background: #ede9fe; }
+        .card-purple .feature-badge { background: #ede9fe; color: #6d28d9; }
+        .card-purple::before { background: #7c3aed; }
+        
+        .card-yellow .feature-icon-wrap { background: #fef9c3; }
+        .card-yellow .feature-badge { background: #fef9c3; color: #a16207; }
+        .card-yellow::before { background: #f59e0b; }
+        
+        .card-green .feature-icon-wrap { background: #dcfce7; }
+        .card-green .feature-badge { background: #dcfce7; color: #15803d; }
+        .card-green::before { background: #22c55e; }
+        
+        .card-pink .feature-icon-wrap { background: #fce7f3; }
+        .card-pink .feature-badge { background: #fce7f3; color: #9d174d; }
+        .card-pink::before { background: #ec4899; }
+        
+        .card-blue .feature-icon-wrap { background: #e0f2fe; }
+        .card-blue .feature-badge { background: #e0f2fe; color: #0369a1; }
+        .card-blue::before { background: #0ea5e9; }
+        
+        .card-red .feature-icon-wrap { background: #fff1f2; }
+        .card-red .feature-badge { background: #fff1f2; color: #be123c; }
+        .card-red::before { background: #f43f5e; }
+        
+        .card-orange .feature-icon-wrap { background: #ffedd5; }
+        .card-orange .feature-badge { background: #ffedd5; color: #c2410c; }
+        .card-orange::before { background: #f97316; }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .feature-card:nth-child(1) { animation: fadeInUp 0.4s ease 0.05s both; }
+        .feature-card:nth-child(2) { animation: fadeInUp 0.4s ease 0.10s both; }
+        .feature-card:nth-child(3) { animation: fadeInUp 0.4s ease 0.15s both; }
+        .feature-card:nth-child(4) { animation: fadeInUp 0.4s ease 0.20s both; }
+        .feature-card:nth-child(5) { animation: fadeInUp 0.4s ease 0.25s both; }
+        .feature-card:nth-child(6) { animation: fadeInUp 0.4s ease 0.30s both; }
+        .feature-card:nth-child(7) { animation: fadeInUp 0.4s ease 0.35s both; }
+        
+        @media (max-width: 1024px) {
+            .feature-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    
+    <div class="feature-grid">
+        <!-- AI Assistant -->
+        <a href="{% url 'chat' %}" class="feature-card card-purple">
+            <div class="feature-icon-wrap">🤖</div>
+            <h3 class="feature-title">AI Assistant</h3>
+            <p class="feature-desc">Solve complex engineering problems and clear doubts instantly</p>
+            <span class="feature-badge">AI Tools</span>
+        </a>
+
+        <!-- Exam Analyzer -->
+        <a href="{% url 'exam_analyzer:analyzer_home' %}" class="feature-card card-yellow">
+            <div class="feature-icon-wrap">🧠</div>
+            <h3 class="feature-title">Exam Analyzer</h3>
+            <p class="feature-desc">Upload past papers, AI predicts what's coming in your next exam</p>
+            <span class="feature-badge">AI Tools</span>
+        </a>
+
+        <!-- Grade Tracker -->
+        <a href="{% url 'grade_tracker:grade_dashboard' %}" class="feature-card card-green">
+            <div class="feature-icon-wrap">🎓</div>
+            <h3 class="feature-title">Grade Tracker</h3>
+            <p class="feature-desc">Track CGPA, analyze performance, and check placement eligibility</p>
+            <span class="feature-badge">Academic</span>
+        </a>
+
+        <!-- Study Planner -->
+        <a href="{% url 'planner' %}" class="feature-card card-pink">
+            <div class="feature-icon-wrap">📅</div>
+            <h3 class="feature-title">Study Planner</h3>
+            <p class="feature-desc">Optimized schedules for exam dates and difficulty levels</p>
+            <span class="feature-badge">Academic</span>
+        </a>
+
+        <!-- Smart Notes -->
+        <a href="{% url 'smart_notes' %}" class="feature-card card-blue">
+            <div class="feature-icon-wrap">📝</div>
+            <h3 class="feature-title">Smart Notes</h3>
+            <p class="feature-desc">Auto-summarize lectures into clean study material</p>
+            <span class="feature-badge">Academic</span>
+        </a>
+
+        <!-- Study Groups -->
+        <a href="{% url 'groups:group_list' %}" class="feature-card card-red">
+            <div class="feature-icon-wrap">👥</div>
+            <h3 class="feature-title">Study Groups</h3>
+            <p class="feature-desc">Collaborative study sessions with real-time chat and notes</p>
+            <span class="feature-badge">Social</span>
+        </a>
+
+        <!-- Career Guide -->
+        <a href="{% url 'career' %}" class="feature-card card-orange">
+            <div class="feature-icon-wrap">🚀</div>
+            <h3 class="feature-title">Career Guide</h3>
+            <p class="feature-desc">AI-powered career prediction based on your profile</p>
+            <span class="feature-badge">AI Tools</span>
+        </a>
+    </div>
+
+</div>
+
+<!-- JavaScript for current date -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateElement = document.getElementById('current-date');
+    if (dateElement) {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const today = new Date();
+        dateElement.textContent = today.toLocaleDateString('en-US', options);
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-2xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8 text-center">
+        <h1 class="text-4xl font-bold text-white mb-2">Grade Tracker Setup</h1>
+        <p class="text-slate-400">Tell us about your university to get personalized benchmarks</p>
+    </div>
+
+    <!-- Setup Form -->
+    <form method="post" class="glass-panel rounded-2xl p-8 border border-slate-700/50">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-lg font-semibold text-white mb-3">
+                    University Name
+                </label>
+                <input type="text" 
+                       name="university_name" 
+                       placeholder="e.g. Savitribai Phule Pune University"
+                       class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg"
+                       required>
+            </div>
+            
+            <div>
+                <label class="block text-lg font-semibold text-white mb-3">
+                    University Short Name
+                </label>
+                <input type="text" 
+                       name="university_short" 
+                       placeholder="e.g. SPPU"
+                       class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg"
+                       required>
+            </div>
+            
+            <div>
+                <label class="block text-lg font-semibold text-white mb-3">
+                    Pattern Year
+                </label>
+                <select name="pattern_year" 
+                        class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg"
+                        required>
+                    <option value="">Select Pattern Year</option>
+                    <option value="2019">2019</option>
+                    <option value="2022">2022</option>
+                    <option value="2023">2023</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-lg font-semibold text-white mb-3">
+                    Stream
+                </label>
+                <select name="stream" 
+                        class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg"
+                        required>
+                    <option value="">Select Stream</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Science">Science</option>
+                    <option value="Commerce">Commerce</option>
+                    <option value="Arts">Arts</option>
+                    <option value="Medical">Medical</option>
+                    <option value="Law">Law</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <div class="md:col-span-2">
+                <label class="block text-lg font-semibold text-white mb-3">
+                    Branch
+                </label>
+                <input type="text" 
+                       name="branch" 
+                       placeholder="e.g. Computer Engineering"
+                       class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg"
+                       required>
+            </div>
+            
+            <div>
+                <label class="block text-lg font-semibold text-white mb-3">
+                    Grading Scale
+                </label>
+                <div class="space-y-3">
+                    <label class="flex items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700 cursor-pointer hover:border-purple-500 transition-colors">
+                        <input type="radio" name="grading_scale" value="10.0" class="mr-3" required>
+                        <span class="text-white">10.0 Scale</span>
+                        <span class="text-slate-400 text-sm ml-2">(Most universities)</span>
+                    </label>
+                    <label class="flex items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700 cursor-pointer hover:border-purple-500 transition-colors">
+                        <input type="radio" name="grading_scale" value="7.0" class="mr-3">
+                        <span class="text-white">7.0 Scale</span>
+                        <span class="text-slate-400 text-sm ml-2">(Some universities)</span>
+                    </label>
+                    <label class="flex items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700 cursor-pointer hover:border-purple-500 transition-colors">
+                        <input type="radio" name="grading_scale" value="4.0" class="mr-3">
+                        <span class="text-white">4.0 Scale</span>
+                        <span class="text-slate-400 text-sm ml-2">(International)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-lg font-semibold text-white mb-3">
+                    Total Semesters in Degree
+                </label>
+                <select name="total_semesters" 
+                        class="w-full p-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 focus:border-purple-500 focus:outline-none text-lg"
+                        required>
+                    <option value="6">6 Semesters</option>
+                    <option value="8">8 Semesters</option>
+                    <option value="10">10 Semesters</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <button type="submit" 
+                    class="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg font-semibold text-lg">
+                <i class="fa-solid fa-magic mr-2"></i>
+                Analyse My University & Start Tracking
+            </button>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

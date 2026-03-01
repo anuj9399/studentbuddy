@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+    <div class="glass-panel rounded-2xl p-6 mb-8">
+        <h2 class="text-3xl font-bold text-white mb-2">
+            <i class="fa-solid fa-rocket text-purple-400 mr-3"></i>
+            AI Career Guide
+        </h2>
+        <p class="text-slate-400">Discover your career path</p>
+    </div>
+
+    <div class="glass-panel rounded-2xl p-6">
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-slate-300 text-sm font-medium mb-2">Select Stream</label>
+                <select name="stream" class="w-full p-3 rounded-xl bg-slate-800/50 text-white border border-slate-700">
+                    <option value="">Choose...</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Business">Business</option>
+                </select>
+            </div>
+            <button type="submit" class="px-6 py-3 bg-purple-500 text-white rounded-xl">
+                Analyze Careers
+            </button>
+        </form>
+    </div>
+
+    {% if selected_stream %}
+    <div class="glass-panel rounded-2xl p-6 mt-6">
+        <h3 class="text-xl font-bold text-white mb-4">Careers for {{ selected_stream }}</h3>
+        {% if career_predictions %}
+            {% for career in career_predictions %}
+            <div class="mb-4 p-4 bg-slate-800/50 rounded-xl">
+                <h4 class="text-white font-semibold">{{ career.title }}</h4>
+                <p class="text-slate-400">{{ career.description }}</p>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-slate-400">No careers found for this stream.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

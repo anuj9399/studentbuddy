@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'grade_tracker:grade_dashboard' %}" class="text-purple-400 hover:text-purple-300 mb-4 inline-block">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back to Grade Tracker
+        </a>
+        <h1 class="text-4xl font-bold text-white mb-2">{{ semester.semester_name }}</h1>
+        <p class="text-slate-400">
+            {% if semester.academic_year %}{{ semester.academic_year }} | {% endif %}
+            Semester {{ semester.semester_number }}
+        </p>
+    </div>
+
+    <!-- Semester Summary -->
+    <div class="glass-panel rounded-2xl p-8 mb-8 border border-slate-700/50">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                <div class="text-3xl font-bold text-purple-400">{{ semester.sgpa }}</div>
+                <div class="text-slate-400 text-sm">SGPA</div>
+            </div>
+            <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                <div class="text-3xl font-bold text-blue-400">{{ semester.total_credits }}</div>
+                <div class="text-slate-400 text-sm">Total Credits</div>
+            </div>
+            <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                <div class="text-3xl font-bold text-green-400">{{ subjects.count }}</div>
+                <div class="text-slate-400 text-sm">Subjects</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subjects List -->
+    <div class="glass-panel rounded-2xl p-8 border border-slate-700/50">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-white">
+                <i class="fa-solid fa-book mr-2 text-purple-400"></i>
+                Subjects
+            </h2>
+            <button type="button" 
+                    onclick="addNewSubject()"
+                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                <i class="fa-solid fa-plus mr-2"></i>
+                Add Subject
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            {% for subject in subjects %}
+            <div class="subject-item grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-slate-800/50 rounded-lg" data-subject-id="{{ subject.id }}">
+                <div class="md:col-span-2">
+                    <input type="text" 
+                           value="{{ subject.subject_name }}"
+                           class="subject-name w-full p-3 rounded-lg bg-slate-700/50 text-white border border-slate-600 focus:border-purple-500 focus:outline-none">
+                </div>
+                
+                <div>
+                    <select class="grade-select w-full p-3 rounded-lg bg-slate-700/50 text-white border border-slate-600 focus:border-purple-500 focus:outline-none">
+                        <option value="{{ subject.grade }}" selected>{{ subject.grade }}</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <input type="number" 
+                           value="{{ subject.credit_hours }}"
+                           min="1" 
+                           max="10"
+                           class="credit-input w-full p-3 rounded-lg bg-slate-700/50 text-white border border-slate-600 focus:border-purple-500 focus:outline-none">
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <select class="subject-type flex-1 p-3 rounded-lg bg-slate-700/50 text-white border border-slate-600 focus:border-purple-500 focus:outline-none">
+                        <option value="core" {% if subject.subject_type == 'core' %}selected{% endif %}>Core</option>
+                        <option value="elective" {% if subject.subject_type == 'elective' %}selected{% endif %}>Elective</option>
+                        <option value="lab" {% if subject.subject_type == 'lab' %}selected{% endif %}>Lab</option>
+                    </select>
+                    <button type="button" 
+                            onclick="deleteSubject({{ subject.id }})"
+                            class="p-3 text-red-400 hover:text-red-300 transition-colors">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8">
+                <div class="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-book text-purple-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-2">No subjects yet</h3>
+                <p class="text-slate-400 mb-4">Add your first subject to get started</p>
+                <button type="button" 
+                        onclick="addNewSubject()"
+                        class="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all">
+                    <i class="fa-solid fa-plus mr-2"></i>
+                    Add First Subject
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if subjects %}
+        <div class="mt-6 flex justify-end gap-4">
+            <button type="button" 
+                    onclick="saveAllSubjects()"
+                    class="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all">
+                <i class="fa-solid fa-save mr-2"></i>
+                Save Changes
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+function addNewSubject() {
+    // This would typically open a modal or navigate to add subject page
+    // For now, we'll show a message
+    alert('Add subject functionality would go here. For now, you can edit existing subjects above.');
+}
+
+function deleteSubject(subjectId) {
+    if (confirm('Are you sure you want to delete this subject?')) {
+        fetch(`/grades/subject/${subjectId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting subject: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting subject');
+        });
+    }
+}
+
+function saveAllSubjects() {
+    const subjectItems = document.querySelectorAll('.subject-item');
+    const promises = [];
+    
+    subjectItems.forEach(item => {
+        const subjectId = item.dataset.subjectId;
+        const name = item.querySelector('.subject-name').value;
+        const grade = item.querySelector('.grade-select').value;
+        const credits = item.querySelector('.credit-input').value;
+        const type = item.querySelector('.subject-type').value;
+        
+        promises.push(
+            fetch(`/grades/subject/${subjectId}/edit/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'subject_name': name,
+                    'grade': grade,
+                    'credit_hours': credits,
+                    'subject_type': type,
+                }),
+            })
+            .then(response => response.json())
+        );
+    });
+    
+    Promise.all(promises)
+        .then(responses => {
+            const allSuccessful = responses.every(r => r.success);
+            if (allSuccessful) {
+                location.reload();
+            } else {
+                alert('Some subjects could not be saved. Please check the data and try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error saving subjects');
+        });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

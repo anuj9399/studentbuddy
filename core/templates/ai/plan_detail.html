@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load study_planner_tags %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% url 'planner' %}" class="text-purple-400 hover:text-purple-300 mb-4 inline-block">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back to Study Planner
+        </a>
+    </div>
+
+    <!-- Plan Header -->
+    <div class="glass-panel rounded-2xl p-8 mb-8 border border-slate-700/50">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Plan Info -->
+            <div class="lg:col-span-2">
+                <h1 class="text-3xl font-bold text-white mb-4">{{ plan.title }}</h1>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div class="text-2xl font-bold {% if plan.days_remaining <= 7 %}text-red-400{% elif plan.days_remaining <= 30 %}text-orange-400{% else %}text-green-400{% endif %}">
+                            {{ plan.days_remaining }}
+                        </div>
+                        <div class="text-slate-400 text-sm">Days Left</div>
+                    </div>
+                    <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div class="text-2xl font-bold text-purple-400">{{ plan.total_sessions }}</div>
+                        <div class="text-slate-400 text-sm">Total Sessions</div>
+                    </div>
+                    <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-400">{{ plan.completed_sessions }}</div>
+                        <div class="text-slate-400 text-sm">Completed</div>
+                    </div>
+                    <div class="text-center p-4 bg-slate-800/50 rounded-lg">
+                        <div class="text-2xl font-bold text-orange-400">{{ plan.skipped_sessions }}</div>
+                        <div class="text-slate-400 text-sm">Skipped</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progress Circle -->
+            <div class="flex flex-col items-center justify-center">
+                <div class="relative w-32 h-32">
+                    <svg class="transform -rotate-90 w-32 h-32">
+                        <circle cx="64" cy="64" r="56" stroke="#374151" stroke-width="12" fill="none"/>
+                        <circle cx="64" cy="64" r="56" stroke="url(#gradient)" stroke-width="12" fill="none"
+                                stroke-dasharray="{{ plan.completion_percentage|mul:3.52 }} 352" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#7C3AED;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-white">{{ plan.completion_percentage }}%</div>
+                            <div class="text-slate-400 text-xs">Complete</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 text-slate-400 text-sm">Exam: {{ plan.exam_date|date:"M d, Y" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Strategy Card -->
+    {% if plan.ai_schedule %}
+        <div class="glass-panel rounded-2xl p-8 mb-8 border border-slate-700/50">
+            <h2 class="text-2xl font-bold text-white mb-6">
+                <i class="fa-solid fa-brain mr-2 text-purple-400"></i>
+                AI Strategy & Insights
+            </h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Strategy -->
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-3">Study Strategy</h3>
+                    <p class="text-slate-300">{{ plan.ai_schedule.plan_summary.strategy|default:"Optimized study schedule based on subject difficulty and available time" }}</p>
+                </div>
+                
+                <!-- Study Tips -->
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-3">Personalized Study Tips</h3>
+                    <div class="space-y-2">
+                        {% for tip in plan.ai_schedule.study_tips %}
+                            <div class="flex items-start gap-2 text-slate-300">
+                                <i class="fa-solid fa-lightbulb text-yellow-400 mt-1 text-sm"></i>
+                                <span class="text-sm">{{ tip }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Weekly Calendar View -->
+    <div class="glass-panel rounded-2xl p-8 mb-8 border border-slate-700/50">
+        <h2 class="text-2xl font-bold text-white mb-6">
+            <i class="fa-solid fa-calendar-week mr-2 text-purple-400"></i>
+            Weekly Schedule
+        </h2>
+        
+        <div class="grid grid-cols-7 gap-4">
+            {% for day_data in current_week %}
+                <div class="border rounded-lg p-4 {% if day_data.is_today %}border-purple-500 bg-purple-500/10{% else %}border-slate-700{% endif %}">
+                    <div class="text-center mb-3">
+                        <div class="text-sm font-semibold text-white">{{ day_data.day_name }}</div>
+                        <div class="text-xs text-slate-400">{{ day_data.date|date:"M d" }}</div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        {% for session in day_data.sessions %}
+                            <div class="p-2 rounded-lg text-xs bg-slate-800/50 border-l-4" style="border-left-color: {{ session.subject.color }};">
+                                <div class="font-medium text-white">{{ session.subject.subject_name }}</div>
+                                <div class="text-slate-300">{{ session.start_time|date:"H:i" }} - {{ session.end_time|date:"H:i" }}</div>
+                                <div class="text-slate-400">{{ session.duration_minutes }} min</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Today's Sessions -->
+    {% if today_sessions %}
+        <div class="glass-panel rounded-2xl p-8 mb-8 border border-slate-700/50">
+            <h2 class="text-2xl font-bold text-white mb-6">
+                <i class="fa-solid fa-clock mr-2 text-purple-400"></i>
+                Today's Sessions
+                <span class="text-lg text-slate-400 ml-2">({{ today_sessions|length }} sessions, {{ today_sessions|length|mul:60 }} minutes)</span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for session in today_sessions %}
+                    <div class="border rounded-lg p-4 {% if session.status == 'completed' %}border-green-500 bg-green-500/10 opacity-75{% elif session.status == 'skipped' %}border-gray-500 bg-gray-500/10 opacity-50{% else %}border-slate-700{% endif %}" style="border-left: 4px solid {{ session.subject.color }};">
+                        
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <h3 class="font-semibold text-white">{{ session.subject.subject_name }}</h3>
+                                <div class="text-slate-400 text-sm">{{ session.start_time|date:"H:i" }} - {{ session.end_time|date:"H:i" }}</div>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs font-medium
+                                {% if session.session_type == 'theory' %}bg-blue-500/20 text-blue-400{% endif %}
+                                {% if session.session_type == 'practice' %}bg-orange-500/20 text-orange-400{% endif %}
+                                {% if session.session_type == 'revision' %}bg-green-500/20 text-green-400{% endif %}">
+                                {{ session.session_type|title }}
+                            </span>
+                        </div>
+                        
+                        <div class="text-slate-300 text-sm mb-3">
+                            <i class="fa-solid fa-book-open mr-1"></i>
+                            {{ session.topic_focus|default:"General study" }}
+                        </div>
+                        
+                        {% if session.tips %}
+                            <div class="text-slate-400 text-xs mb-3 italic">
+                                <i class="fa-solid fa-lightbulb mr-1"></i>
+                                {{ session.tips }}
+                            </div>
+                        {% endif %}
+                        
+                        {% if session.status == 'pending' %}
+                            <div class="flex gap-2">
+                                <button onclick="markComplete({{ session.id }})" class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                                    <i class="fa-solid fa-check mr-1"></i>Complete
+                                </button>
+                                <button onclick="skipSession({{ session.id }})" class="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                                    <i class="fa-solid fa-forward mr-1"></i>Skip
+                                </button>
+                            </div>
+                        {% elif session.status == 'completed' %}
+                            <div class="text-green-400 text-sm font-medium">
+                                <i class="fa-solid fa-check-circle mr-1"></i>Completed
+                            </div>
+                        {% elif session.status == 'skipped' %}
+                            <div class="text-gray-400 text-sm font-medium">
+                                <i class="fa-solid fa-forward mr-1"></i>Skipped
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Subject Progress -->
+    <div class="glass-panel rounded-2xl p-8 mb-8 border border-slate-700/50">
+        <h2 class="text-2xl font-bold text-white mb-6">
+            <i class="fa-solid fa-chart-line mr-2 text-purple-400"></i>
+            Subject Progress
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for subject in subjects %}
+                <div class="border rounded-lg p-6 border-slate-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-white">{{ subject.subject_name }}</h3>
+                        <span class="px-2 py-1 rounded text-xs font-medium
+                            {% if subject.priority == 'high' %}bg-red-500/20 text-red-400{% endif %}
+                            {% if subject.priority == 'medium' %}bg-yellow-500/20 text-yellow-400{% endif %}
+                            {% if subject.priority == 'low' %}bg-green-500/20 text-green-400{% endif %}">
+                            {{ subject.priority|title }}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-400">Progress</span>
+                            <span class="text-purple-400">{{ subject|get_progress:plan }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-700 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-2 rounded-full transition-all duration-500" style="width: {{ subject|get_progress:plan }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-slate-400 text-sm">
+                        <div>{{ subject|get_completed_sessions:plan }} / {{ subject|get_total_sessions:plan }} sessions completed</div>
+                        <div class="text-xs mt-1">Difficulty: {{ subject.difficulty|title }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+function markComplete(sessionId) {
+    fetch(`/chat/planner/session/${sessionId}/complete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Session marked as completed!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification(data.message || 'Failed to complete session', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Failed to complete session', 'error');
+    });
+}
+
+function skipSession(sessionId) {
+    if (confirm('Are you sure you want to skip this session?')) {
+        fetch(`/chat/planner/session/${sessionId}/skip/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Session skipped!', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showNotification(data.message || 'Failed to skip session', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Failed to skip session', 'error');
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 fade-in ${
+        type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center gap-2">
+            <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+
+<style>
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}

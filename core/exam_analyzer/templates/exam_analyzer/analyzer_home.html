@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">Exam Analyzer</h1>
+                <p class="text-[14px] text-[var(--text-muted)]">Upload past papers, AI predicts what's coming in your next exam</p>
+            </div>
+            <a href="{% url 'exam_analyzer:create_subject' %}" class="btn btn-primary">
+                <i class="fa-solid fa-plus mr-2"></i>
+                Add New Subject
+            </a>
+        </div>
+    </div>
+
+    <!-- Subjects List -->
+    {% if subjects %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for subject in subjects %}
+                <div class="card rounded-[20px] p-6 fade-in-up" 
+                     style="animation-delay: {{ forloop.counter0|add:1 }}00ms;">
+                    
+                    <!-- Subject Header -->
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-[18px] font-black text-[var(--text-dark)] mb-1">{{ subject.subject_name }}</h3>
+                            <p class="text-[13px] text-[var(--text-muted)]">{{ subject.total_papers_uploaded }} papers uploaded</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-[var(--primary-soft)] flex items-center justify-center">
+                            <i class="fa-solid fa-graduation-cap text-[var(--primary)]"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Subject Stats -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="text-center p-3 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
+                            <div class="text-[16px] font-black text-[var(--primary)]">{{ subject.total_papers_uploaded }}</div>
+                            <div class="text-[11px] text-[var(--text-muted)]">Papers</div>
+                        </div>
+                        <div class="text-center p-3 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
+                            <div class="text-[16px] font-black text-[var(--text-dark)]">
+                                {% if subject.latest_analysis %}
+                                    {{ subject.latest_analysis.total_topics_found }}
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </div>
+                            <div class="text-[11px] text-[var(--text-muted)]">Topics</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Last Analysis Info -->
+                    {% if subject.latest_analysis %}
+                        <div class="mb-4 p-3 bg-[var(--primary-soft)] rounded-xl border border-[var(--primary-border)]">
+                            <div class="flex items-center gap-2 text-[var(--primary)] text-sm">
+                                <i class="fa-solid fa-check-circle"></i>
+                                <span>Analyzed {{ subject.latest_analysis.analyzed_at|timesince }} ago</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex gap-2">
+                        <a href="{% url 'exam_analyzer:upload_papers' subject.id %}" 
+                           class="btn btn-primary flex-1 text-center py-2 text-sm">
+                            <i class="fa-solid fa-upload mr-2"></i>Upload Papers
+                        </a>
+                        {% if subject.latest_analysis %}
+                            <a href="{% url 'exam_analyzer:analysis_results' subject.id %}" 
+                               class="btn btn-secondary flex-1 text-center py-2 text-sm">
+                                <i class="fa-solid fa-chart-line mr-2"></i>View Analysis
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16">
+            <div class="w-32 h-32 bg-[var(--primary-soft)] rounded-full flex items-center justify-center mx-auto mb-8 fade-in-up">
+                <i class="fa-solid fa-brain text-[var(--primary)] text-4xl"></i>
+            </div>
+            
+            <h2 class="text-[24px] font-black text-[var(--text-dark)] mb-4 fade-in-up fade-in-up-delay-1">
+                Start Analyzing Your Exams
+            </h2>
+            
+            <p class="text-[var(--text-muted)] text-lg mb-8 max-w-md mx-auto fade-in-up fade-in-up-delay-2">
+                Upload previous year question papers and let AI predict what's coming in your next exam
+            </p>
+            
+            <div class="fade-in-up fade-in-up-delay-3">
+                <a href="{% url 'exam_analyzer:create_subject' %}" class="btn btn-primary">
+                    <i class="fa-solid fa-plus mr-2"></i>
+                    Create Your First Subject
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
