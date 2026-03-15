@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: studentbuddy
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      cd core && python manage.py collectstatic --noinput
+      cd core && python manage.py migrate
+    startCommand: cd core && daphne -b 0.0.0.0 -p $PORT core.asgi:application
+    envVars:
+      - key: DEBUG
+        value: False
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: PYTHON_VERSION
+        value: 3.11.0
