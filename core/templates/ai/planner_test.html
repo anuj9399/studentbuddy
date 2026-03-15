@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- DEBUG: Testing basic visibility -->
+<div style="background: red; padding: 20px; margin: 20px; border: 2px solid yellow;">
+    <h1 style="color: white; font-size: 24px;">STUDY PLANNER TEST PAGE</h1>
+    <p style="color: white;">This should be visible!</p>
+    
+    <!-- Test basic template rendering -->
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="card rounded-[20px] p-6 mb-8">
+            <h2>Study Planner Header Test</h2>
+        </div>
+        
+        <!-- Plans List -->
+        {% if plans %}
+            <div style="background: green; padding: 10px; margin: 10px;">
+                <p style="color: white;">PLANS FOUND: {{ plans|length }}</p>
+                {% for plan in plans %}
+                    <div style="background: white; padding: 10px; margin: 5px; border: 1px solid black;">
+                        <h3>{{ plan.title }}</h3>
+                        <p>Exam: {{ plan.exam_date|date:"M d, Y" }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="background: orange; padding: 10px; margin: 10px;">
+                <p style="color: white;">NO PLANS FOUND</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

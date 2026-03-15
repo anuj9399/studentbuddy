@@ -55,9 +55,35 @@ def upload_papers(request, subject_id):
         years = request.POST.getlist('years')
         
         uploaded_count = 0
+        error_messages = []
+        
         for i, file in enumerate(files):
             year = years[i] if i < len(years) else None
-            if year and file.name.lower().endswith('.pdf'):
+            
+            # Validate file
+            if not file.name.lower().endswith('.pdf'):
+                error_messages.append(f"'{file.name}' is not a PDF file")
+                continue
+                
+            if not year:
+                error_messages.append(f"'{file.name}' - Year is required")
+                continue
+                
+            try:
+                year = int(year)
+                if year < 2000 or year > 2030:
+                    error_messages.append(f"'{file.name}' - Invalid year: {year}")
+                    continue
+            except ValueError:
+                error_messages.append(f"'{file.name}' - Year must be a number")
+                continue
+            
+            # Check file size (max 10MB)
+            if file.size > 10 * 1024 * 1024:
+                error_messages.append(f"'{file.name}' - File too large (max 10MB)")
+                continue
+            
+            try:
                 paper = QuestionPaper.objects.create(
                     subject=subject,
                     file=file,
@@ -69,14 +95,25 @@ def upload_papers(request, subject_id):
                 paper.extracted_text = extracted_text
                 paper.save()
                 uploaded_count += 1
+                
+            except Exception as e:
+                error_messages.append(f"'{file.name}' - Upload failed: {str(e)}")
+                continue
         
         if uploaded_count > 0:
             # Update subject paper count
             subject.total_papers_uploaded = QuestionPaper.objects.filter(subject=subject).count()
             subject.save()
-            messages.success(request, f'{uploaded_count} papers uploaded successfully!')
+            
+            success_message = f'{uploaded_count} papers uploaded successfully!'
+            if error_messages:
+                success_message += f' (Some files had errors: "; ".join(error_messages))'
+            messages.success(request, success_message)
         else:
-            messages.error(request, 'No valid PDF files were uploaded')
+            if error_messages:
+                messages.error(request, f'Upload failed: "; ".join(error_messages)')
+            else:
+                messages.error(request, 'No valid PDF files were uploaded')
         
         return redirect('exam_analyzer:upload_papers', subject_id=subject.id)
     
@@ -93,15 +130,29 @@ def run_analysis(request, subject_id):
     subject = get_object_or_404(ExamSubject, id=subject_id, user=request.user)
     papers = QuestionPaper.objects.filter(subject=subject)
     
+    print(f"Starting analysis for subject: {subject.subject_name}")
+    print(f"Number of papers: {papers.count()}")
+    
     if papers.count() < 2:
         return JsonResponse({
             'success': False, 
             'message': 'Please upload at least 2 question papers for analysis'
         })
     
+    # Check if papers have extracted text
+    papers_with_text = papers.filter(extracted_text__isnull=False).exclude(extracted_text='')
+    print(f"Papers with extracted text: {papers_with_text.count()}")
+    
+    if papers_with_text.count() < 2:
+        return JsonResponse({
+            'success': False, 
+            'message': 'Not enough text could be extracted from the uploaded papers. Please try uploading clearer PDF files.'
+        })
+    
     try:
         # Combine all extracted text
-        combined_text = '\n\n'.join([paper.extracted_text for paper in papers if paper.extracted_text])
+        combined_text = '\n\n'.join([paper.extracted_text for paper in papers_with_text])
+        print(f"Combined text length: {len(combined_text)} characters")
         
         if not combined_text.strip():
             return JsonResponse({
@@ -110,9 +161,12 @@ def run_analysis(request, subject_id):
             })
         
         # Analyze with AI
+        print("Starting AI analysis...")
         ai_data = analyze_with_ai(combined_text)
         
         if ai_data:
+            print("✅ AI analysis successful")
+            
             # Add percentage calculation to most_repeated_topics
             most_repeated_topics = ai_data.get('most_repeated_topics', [])
             for topic in most_repeated_topics:
@@ -132,18 +186,22 @@ def run_analysis(request, subject_id):
                 raw_ai_response=json.dumps(ai_data)
             )
             
+            print(f"✅ Analysis saved with ID: {analysis.id}")
+            
             return JsonResponse({
                 'success': True, 
                 'message': 'Analysis completed successfully!',
                 'analysis_id': analysis.id
             })
         else:
+            print("❌ AI analysis returned None")
             return JsonResponse({
                 'success': False, 
-                'message': 'AI analysis failed. Please try again.'
+                'message': 'AI analysis failed. The AI service might be unavailable or the content might not be suitable for analysis. Please try again or check the server logs for details.'
             })
             
     except Exception as e:
+        print(f"❌ Analysis failed with exception: {str(e)}")
         return JsonResponse({
             'success': False, 
             'message': f'Analysis failed: {str(e)}'
@@ -208,32 +266,58 @@ def extract_text_from_pdf(pdf_path):
         with open(pdf_path, 'rb') as file:
             reader = pypdf.PdfReader(file)
             text = ""
-            for page in reader.pages:
-                text += page.extract_text()
+            for page_num, page in enumerate(reader.pages):
+                try:
+                    page_text = page.extract_text()
+                    text += page_text + "\n"
+                except Exception as e:
+                    print(f"Error extracting text from page {page_num}: {e}")
+                    continue
             
             if text.strip():
+                print(f"Successfully extracted {len(text)} characters using pypdf")
                 return text
+            else:
+                print("pypdf extracted empty text, trying OCR")
+                
     except Exception as e:
         print(f"pypdf extraction failed: {e}")
     
     try:
         # Fallback to OCR
-        images = pdf2image.convert_from_path(pdf_path)
+        print("Attempting OCR extraction...")
+        images = pdf2image.convert_from_path(pdf_path, dpi=200)
         text = ""
-        for image in images:
-            text += pytesseract.image_to_string(image)
+        for i, image in enumerate(images):
+            try:
+                page_text = pytesseract.image_to_string(image)
+                text += page_text + "\n"
+                print(f"OCR processed page {i+1}/{len(images)}")
+            except Exception as e:
+                print(f"OCR failed on page {i+1}: {e}")
+                continue
         
-        return text
+        if text.strip():
+            print(f"Successfully extracted {len(text)} characters using OCR")
+            return text
+        else:
+            print("OCR extracted empty text")
+            
     except Exception as e:
         print(f"OCR extraction failed: {e}")
-        return ""
+    
+    print(f"Failed to extract any text from {pdf_path}")
+    return ""
 
 def analyze_with_ai(content):
     """Analyze content with AI"""
     try:
         api_key = os.getenv('OPENROUTER_API_KEY')
         if not api_key:
+            print("ERROR: OPENROUTER_API_KEY not found in environment variables")
             return None
+        
+        print(f"Starting AI analysis with content length: {len(content)} characters")
         
         prompt = f"""You are an expert exam pattern analyzer. Analyze the following previous year question papers and return a JSON response with this exact structure:
 {{
@@ -246,8 +330,9 @@ def analyze_with_ai(content):
   quick_insights: [list of 5 short powerful insight strings]
 }}
 Return only valid JSON, nothing else.
-Papers content: {content}"""
+Papers content: {content[:4000]}"""  # Limit content to avoid token limits
         
+        print("Sending request to OpenRouter API...")
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
@@ -259,25 +344,47 @@ Papers content: {content}"""
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": 3000,
                 "temperature": 0.3,
-            }
+            },
+            timeout=60
         )
+        
+        print(f"API Response Status: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
             content = data['choices'][0]['message']['content']
+            print(f"Raw AI response: {content[:200]}...")
             
             # Try to parse JSON
             try:
-                return json.loads(content)
-            except json.JSONDecodeError:
+                result = json.loads(content)
+                print("✅ Successfully parsed JSON response")
+                return result
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
                 # Extract JSON from response if it's wrapped in code blocks
                 if '```json' in content:
                     json_str = content.split('```json')[1].split('```')[0].strip()
-                    return json.loads(json_str)
+                    print("Trying to parse JSON from code blocks...")
+                    try:
+                        result = json.loads(json_str)
+                        print("✅ Successfully parsed JSON from code blocks")
+                        return result
+                    except json.JSONDecodeError as e2:
+                        print(f"JSON from code blocks also failed: {e2}")
+                else:
+                    print("No JSON code blocks found in response")
                 return None
         else:
+            print(f"API request failed with status {response.status_code}: {response.text}")
             return None
             
+    except requests.exceptions.Timeout:
+        print("ERROR: AI request timed out")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: AI request failed: {e}")
+        return None
     except Exception as e:
-        print(f"AI analysis error: {e}")
+        print(f"ERROR: Unexpected error in AI analysis: {e}")
         return None

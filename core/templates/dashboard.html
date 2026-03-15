@@ -5,29 +5,29 @@
 <div class="max-w-7xl mx-auto">
 
     <!-- HERO BANNER -->
-    <div class="card rounded-[22px] p-[34px_38px] mb-8 fade-in-up relative overflow-hidden" style="background: var(--gradient);">
+    <div class="card rounded-[22px] p-[40px_44px] mb-8 fade-in-up relative overflow-hidden" style="background: var(--gradient);">
         <!-- Decorative blobs -->
         <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full"></div>
         <div class="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full"></div>
         
         <div class="relative z-10">
-            <div class="text-white opacity-60 text-xs mb-2" id="current-date"></div>
-            <h1 class="text-white text-[30px] font-black mb-2">
+            <div class="text-white" style="font-size: 14px; color: rgba(255,255,255,0.75); font-weight: 500; margin-bottom: 8px;" id="current-date"></div>
+            <h1 class="text-white" style="font-size: 36px; font-weight: 900; color: white; margin-bottom: 8px;">
                 Welcome back, {{ request.user.first_name|default:request.user.username }} 👋
             </h1>
-            <p class="text-white opacity-65 text-[14px] font-normal">
+            <p class="text-white" style="font-size: 16px; color: rgba(255,255,255,0.8); font-weight: 400;">
                 Ready to conquer your academic goals today?
             </p>
             
             <!-- Chips row -->
-            <div class="flex gap-2 mt-4">
-                <div class="bg-white bg-opacity-20 text-white text-xs px-3 py-1 rounded-full">
+            <div class="flex gap-2" style="margin-top: 20px;">
+                <div class="text-white" style="font-size: 13px; padding: 6px 16px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; color: white;">
                     🔥 {{ study_streak }} day streak
                 </div>
-                <div class="bg-white bg-opacity-20 text-white text-xs px-3 py-1 rounded-full">
+                <div class="text-white" style="font-size: 13px; padding: 6px 16px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; color: white;">
                     📚 Sem {{ user.semester|default:"X" }}
                 </div>
-                <div class="bg-white bg-opacity-20 text-white text-xs px-3 py-1 rounded-full">
+                <div class="text-white" style="font-size: 13px; padding: 6px 16px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; color: white;">
                     📅 {{ tasks_pending }} tasks pending
                 </div>
             </div>
@@ -220,6 +220,7 @@
         .feature-card:nth-child(5) { animation: fadeInUp 0.4s ease 0.25s both; }
         .feature-card:nth-child(6) { animation: fadeInUp 0.4s ease 0.30s both; }
         .feature-card:nth-child(7) { animation: fadeInUp 0.4s ease 0.35s both; }
+        .feature-card:nth-child(8) { animation: fadeInUp 0.4s ease 0.40s both; }
         
         @media (max-width: 1024px) {
             .feature-grid {
@@ -289,6 +290,22 @@
             <h3 class="feature-title">Career Guide</h3>
             <p class="feature-desc">AI-powered career prediction based on your profile</p>
             <span class="feature-badge">AI Tools</span>
+        </a>
+
+        <!-- Resource Hub -->
+        <a href="{% url 'resources:home' %}" class="feature-card card-green">
+            <div class="feature-icon-wrap">📚</div>
+            <h3 class="feature-title">Resource Hub</h3>
+            <p class="feature-desc">Find notes, papers and videos for any subject instantly</p>
+            <span class="feature-badge">New</span>
+        </a>
+
+        <!-- Quiz Generator -->
+        <a href="{% url 'quiz:home' %}" class="feature-card card-yellow">
+            <div class="feature-icon-wrap">🧠</div>
+            <h3 class="feature-title">Quiz Generator</h3>
+            <p class="feature-desc">AI generates MCQ quizzes on any topic with instant score and explanations</p>
+            <span class="feature-badge">New</span>
         </a>
     </div>
 

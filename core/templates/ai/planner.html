@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
+<!-- DEBUG: {{ plans|length }} plans found -->
 <div class="max-w-7xl mx-auto">
 
     <!-- Header -->
@@ -49,15 +50,14 @@
                     </div>
                     
                     <!-- Progress Bar -->
-                    {% if 0 > 0 %}
+                    {% if plan.total_sessions > 0 %}
                         <div class="mb-4">
                             <div class="flex justify-between text-sm mb-1">
                                 <span class="text-[var(--text-muted)]">Progress</span>
-                                <span class="text-[var(--primary)]">50%</span>
+                                <span class="text-[var(--primary)]">{{ plan.completion_percentage|default:0 }}%</span>
                             </div>
                             <div class="w-full bg-[var(--border)] rounded-full h-2">
-                                <div class="bg-[var(--primary)] h-2 rounded-full transition-all duration-500"
-                                     style="width: 50%"></div>
+                                <div class="bg-[var(--primary)] h-2 rounded-full transition-all duration-500" style="width: {{ plan.completion_percentage|default:0 }}%"></div>
                             </div>
                         </div>
                     {% endif %}
@@ -80,11 +80,11 @@
                     
                     <!-- Action Buttons -->
                     <div class="flex gap-2">
-                        <a href="#" 
+                        <a href="{% url 'plan_detail' plan.id %}" 
                            class="flex-1 btn btn-primary px-4 py-2 text-center">
                             <i class="fa-solid fa-chart-line mr-2"></i>View Plan
                         </a>
-                        <button onclick="deletePlan(1)" 
+                        <button onclick="deletePlan({{ plan.id }})" 
                                 class="px-3 py-2 text-[var(--text-muted)] hover:text-red-500 transition-colors">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -138,10 +138,10 @@
             
             <div class="card rounded-[20px] p-6 border border-[var(--border)] fade-in-up fade-in-up-delay-6">
                 <div class="w-12 h-12 rounded-xl bg-[var(--primary-soft)] flex items-center justify-center mb-4">
-                    <i class="fa-solid fa-bell text-[var(--primary)]"></i>
+                    <i class="fa-solid fa-users text-[var(--primary)]"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-[#1a1a2e] mb-2">Smart Reminders</h3>
-                <p class="text-[#9491b4] text-sm">Never miss a study session with intelligent reminders</p>
+                <h3 class="text-lg font-semibold text-[#1a1a2e] mb-2">Collaborative Study</h3>
+                <p class="text-[#9491b4] text-sm">Study together with shared notes and group discussions</p>
             </div>
         </div>
     {% endif %}

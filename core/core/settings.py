@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-q$9v-@@)swqzqmv+2f_lfdr#9#pxc*smennfut7eqe=r$7%x5o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'groups',
     'exam_analyzer',
     'grade_tracker',
+    'resources',
+    'quiz',
 ]
 
 
@@ -152,6 +154,10 @@ LOGOUT_REDIRECT_URL = "/"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+import os
+
+# SerpApi for Google Search
+SERPAPI_KEY = os.environ.get('SERPAPI_KEY')
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB in bytes

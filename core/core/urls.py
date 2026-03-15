@@ -2,7 +2,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
-from .views import profile, dashboard, tasks_view, complete_task
+from .views import profile, dashboard, tasks_view, complete_task, about_us
 
 
 urlpatterns = [
@@ -15,6 +15,9 @@ urlpatterns = [
     path('study-groups/', include('groups.urls')),
     path('exam-analyzer/', include('exam_analyzer.urls')),
     path('grades/', include('grade_tracker.urls')),
+    path('resources/', include('resources.urls')),
+    path('quiz/', include('quiz.urls')),
+    path('about/', about_us, name='about'),
 ]
 
 # Serve media files during development

@@ -1,97 +1,412 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="max-w-6xl mx-auto">
-    <!-- Header -->
-    <div class="card rounded-[20px] p-6 mb-8 fade-in-up">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="text-[28px] font-black text-[#1a1a2e] mb-2">
-                    <i class="fa-solid fa-rocket text-[var(--primary)] mr-3"></i>
-                    AI Career Guide
-                </h2>
-                <p class="text-[14px] text-[var(--text-muted)]">Discover your career path based on your academic stream</p>
-            </div>
-        </div>
+<style>
+/* Stream Suggestions */
+.stream-suggestions {
+  margin-top: 16px;
+}
+.suggestions-label {
+  font-size: 12px;
+  color: #9491b4;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.suggestions-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.suggestion-chip {
+  background: white;
+  border: 1px solid #ddd6fe;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6d28d9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Nunito', sans-serif;
+}
+.suggestion-chip:hover {
+  background: #ede9fe;
+  border-color: #a78bfa;
+  transform: translateY(-2px);
+}
+
+/* Career Card Styling */
+.career-card {
+  background: white;
+  border: 1px solid #eee8ff;
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(109,40,217,0.06);
+  transition: all 0.3s ease;
+}
+.career-card:hover {
+  border-color: #c4b5fd;
+  box-shadow: 0 8px 32px rgba(109,40,217,0.12);
+  transform: translateY(-2px);
+}
+.career-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.career-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #1a1a2e;
+}
+.career-field {
+  font-size: 13px;
+  color: #9491b4;
+  margin-top: 4px;
+}
+.match-badge {
+  background: #dcfce7;
+  color: #15803d;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.career-desc {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.career-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-box {
+  background: #f8f7ff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid #eee8ff;
+}
+.stat-label {
+  font-size: 10px;
+  color: #9491b4;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-size: 15px;
+  font-weight: 800;
+  color: #6d28d9;
+}
+.stat-value.green { color: #15803d; }
+.stat-value.orange { color: #c2410c; }
+.section-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+.skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.skill-tag {
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Industries */
+.industries-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.industry-tag {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Career Journey */
+.career-journey {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee8ff;
+}
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+.journey-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6d28d9, #4f46e5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.step-content {
+  flex: 1;
+}
+.step-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+.step-desc {
+  font-size: 12px;
+  color: #9491b4;
+  margin-top: 2px;
+  line-height: 1.5;
+}
+.step-duration {
+  font-size: 11px;
+  color: #a78bfa;
+  font-weight: 600;
+  margin-top: 4px;
+}
+</style>
+
+<script>
+function setStream(stream) {
+  document.getElementById('stream-input').value = stream;
+  document.getElementById('career-form').submit();
+}
+</script>
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 style="font-size:26px; font-weight:900; color:#1a1a2e;">Career Guide</h1>
+        <p style="color:#9491b4; font-size:14px;">Discover your perfect career path with AI</p>
     </div>
 
-    <!-- Career Analysis Form -->
-    <div class="card rounded-[20px] p-6 mb-8 fade-in-up">
-        <form method="POST" class="space-y-4">
+    <!-- Input Form -->
+    <div style="background:white; border:1px solid #eee8ff; border-radius:20px; padding:32px; margin-bottom:24px;">
+        <form method="POST" id="career-form">
             {% csrf_token %}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[13px] font-black text-[var(--text-dark)] mb-2">Your Academic Stream</label>
-                    <select name="stream" required
-                            class="input w-full p-[10px_14px] rounded-xl text-[14px]">
-                        <option value="">Select your stream...</option>
-                        {% if all_streams %}
-                            {% for stream in all_streams %}
-                            <option value="{{ stream }}" {% if selected_stream == stream %}selected{% endif %}>
-                                {{ stream }}
-                            </option>
-                            {% endfor %}
-                        {% endif %}
-                    </select>
-                </div>
-                <div class="flex items-end">
-                    <button type="submit" 
-                            class="w-full btn btn-primary px-6 py-3">
-                        <i class="fa-solid fa-search mr-2"></i>
-                        Analyze Career Options
-                    </button>
+            <label style="font-size:13px; font-weight:700; color:#1a1a2e; display:block; margin-bottom:8px;">Enter Your Academic Stream</label>
+            <div style="display:flex; gap:12px; margin-bottom:16px;">
+                <input type="text" id="stream-input" name="stream" value="{{ selected_stream|default:'' }}" 
+                    placeholder="e.g. Computer Science Engineering, Mechanical, MBA..."
+                    style="flex:1; padding:12px 16px; border:1px solid #ddd6fe; border-radius:10px; font-size:14px; color:#1a1a2e; background:white; font-family:'Nunito',sans-serif;">
+                <button type="submit" style="background:linear-gradient(135deg,#6d28d9,#4f46e5); color:white; border:none; border-radius:10px; padding:12px 24px; font-weight:700; font-size:14px; cursor:pointer; white-space:nowrap;">
+                    🔍 Discover Careers
+                </button>
+            </div>
+            
+            <!-- Stream Suggestions -->
+            <div class="stream-suggestions">
+                <p class="suggestions-label">Popular streams:</p>
+                <div class="suggestions-chips">
+                    <button class="suggestion-chip" onclick="setStream('Computer Science')">💻 Computer Science</button>
+                    <button class="suggestion-chip" onclick="setStream('Mechanical Engineering')">⚙️ Mechanical Engineering</button>
+                    <button class="suggestion-chip" onclick="setStream('Civil Engineering')">🏗️ Civil Engineering</button>
+                    <button class="suggestion-chip" onclick="setStream('Electronics')">📡 Electronics</button>
+                    <button class="suggestion-chip" onclick="setStream('Information Technology')">🖥️ Information Technology</button>
+                    <button class="suggestion-chip" onclick="setStream('MBA')">📊 MBA</button>
+                    <button class="suggestion-chip" onclick="setStream('Data Science')">📈 Data Science</button>
+                    <button class="suggestion-chip" onclick="setStream('Artificial Intelligence')">🤖 Artificial Intelligence</button>
+                    <button class="suggestion-chip" onclick="setStream('Medical')">🏥 Medical</button>
+                    <button class="suggestion-chip" onclick="setStream('Electrical Engineering')">⚡ Electrical Engineering</button>
+                    <button class="suggestion-chip" onclick="setStream('Commerce')">💰 Commerce</button>
+                    <button class="suggestion-chip" onclick="setStream('Arts')">🎨 Arts</button>
                 </div>
             </div>
         </form>
     </div>
 
-    <!-- Career Predictions -->
-    {% if career_predictions %}
-    <div class="space-y-6">
-        <h3 class="text-[20px] font-black text-[#1a1a2e] mb-6">
-            <i class="fa-solid fa-lightbulb text-[var(--primary)] mr-3"></i>
-            Career Paths for {{ selected_stream }}
-        </h3>
-        
-        {% for career in career_predictions %}
-        <div class="card rounded-[20px] p-6 fade-in-up">
-            <h4 class="text-[15px] font-black text-[#1a1a2e] mb-2">{{ career.title }}</h4>
-            <p class="text-[13px] text-[var(--text-muted)] mb-4">{{ career.description }}</p>
-            
-            <div class="flex flex-wrap gap-3 mb-4">
-                <span class="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
-                    <i class="fa-solid fa-dollar-sign mr-1"></i>{{ career.average_salary }}
-                </span>
-                <span class="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">
-                    <i class="fa-solid fa-chart-line mr-1"></i>{{ career.growth_rate }} Growth
-                </span>
+    <!-- Error Message -->
+    {% if error_message %}
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:16px; padding:20px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:24px; height:24px; background:#ef4444; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:12px; font-weight:800;">!</div>
+            <div>
+                <h3 style="color:#dc2626; font-size:14px; font-weight:700; margin:0;">Error</h3>
+                <p style="color:#7f1d1d; font-size:13px; margin:4px 0 0;">{{ error_message }}</p>
             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Career Results -->
+    {% if careers %}
+        <div style="text-align:center; margin-bottom:24px;">
+            <h2 style="font-size:20px; font-weight:900; color:#1a1a2e; margin-bottom:8px;">
+                Found {{ careers|length }} Career Paths for "{{ selected_stream }}"
+            </h2>
+            <p style="color:#9491b4; font-size:14px;">Complete career journeys with step-by-step guidance</p>
+        </div>
+
+        {% for career in careers %}
+        <div class="career-card">
             
-            <div class="border-l-4 border-purple-500 pl-4 mb-4">
-                <h5 class="text-[15px] font-black text-[#1a1a2e] mb-3">
-                    <i class="fa-solid fa-tools text-[var(--primary)] mr-2"></i>Key Skills Required
-                </h5>
-                <div class="flex flex-wrap gap-2">
-                    {% for skill in career.key_skills.split ',' %}
-                    <span class="px-3 py-1 bg-slate-700/50 text-slate-300 rounded-lg text-sm">
-                        {{ skill.strip }}
-                    </span>
+            <!-- Career Header -->
+            <div class="career-header">
+                <div>
+                    <h2 class="career-title">{{ career.title }}</h2>
+                    <p class="career-field">{{ career.field }}</p>
+                </div>
+                <div class="match-badge">
+                    {{ career.match_percentage }}% Match
+                </div>
+            </div>
+
+            <!-- Career Description -->
+            <p class="career-desc">
+                {{ career.description }}
+            </p>
+
+            <!-- Career Details Grid -->
+            <div class="career-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Avg Salary</div>
+                    <div class="stat-value">{{ career.avg_salary }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Growth</div>
+                    <div class="stat-value green">{{ career.growth }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Education</div>
+                    <div class="stat-value orange">{{ career.education }}</div>
+                </div>
+            </div>
+
+            <!-- Required Skills -->
+            {% if career.skills %}
+            <div class="skills-section">
+                <div class="section-label">Required Skills</div>
+                <div class="skills-list">
+                    {% for skill in career.skills %}
+                    <span class="skill-tag">{{ skill }}</span>
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
+
+            <!-- Job Outlook -->
+            {% if career.job_outlook %}
+            <div class="job-outlook">
+                <div class="section-label">Job Outlook</div>
+                <p style="color:#4b5563; font-size:14px; line-height:1.5;">{{ career.job_outlook }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Industries -->
+            {% if career.industries %}
+            <div class="career-industries">
+                <div class="section-label">Industries</div>
+                <div class="industries-list">
+                    {% for industry in career.industries %}
+                    <span class="industry-tag">{{ industry }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Career Journey -->
+            {% if career.career_steps %}
+            <div class="career-journey">
+                <div class="section-label">Career Journey</div>
+                <div class="steps-list">
+                    {% for step in career.career_steps %}
+                    <div class="journey-step">
+                        <div class="step-number">{{ step.step }}</div>
+                        <div class="step-content">
+                            <div class="step-title">{{ step.title }}</div>
+                            <div class="step-desc">{{ step.description }}</div>
+                            <div class="step-duration">⏱ {{ step.duration }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
+    {% endif %}
+
+    <!-- No Results State -->
+    {% if selected_stream and not careers %}
+    <div style="background:white; border:1px solid #eee8ff; border-radius:20px; padding:48px; text-align:center;">
+        <div style="width:64px; height:64px; background:#f8f7ff; border-radius:16px; display:flex; align-items:center; justify-content:center; margin:0 auto 24px; font-size:32px;">
+            🔍
+        </div>
+        <h2 style="font-size:20px; font-weight:900; color:#1a1a2e; margin-bottom:8px;">No Career Paths Found</h2>
+        <p style="color:#9491b4; font-size:14px; margin-bottom:24px;">
+            We couldn't find career paths for "{{ selected_stream }}". Try:
+        </p>
+        <div style="text-align:left; max-width:400px; margin:0 auto;">
+            <p style="color:#1a1a2e; font-size:14px;">✓ Computer Science</p>
+            <p style="color:#1a1a2e; font-size:14px;">✓ Engineering</p>
+            <p style="color:#1a1a2e; font-size:14px;">✓ Business</p>
+            <p style="color:#1a1a2e; font-size:14px;">✓ Or type related keywords like "IT", "Mechanical", "Finance"</p>
+        </div>
     </div>
     {% endif %}
 
     <!-- Initial State -->
     {% if not selected_stream %}
-    <div class="card rounded-[20px] p-12 text-center fade-in-up">
-        <i class="fa-solid fa-compass text-6xl text-[var(--primary)] mb-4"></i>
-        <h3 class="text-[28px] font-black text-[#1a1a2e] mb-4">Discover Your Complete Career Journey</h3>
-        <p class="text-[14px] text-[var(--text-muted)] mb-6">
-            Select your academic stream to get personalized career recommendations.
+    <div style="background:white; border:1px solid #eee8ff; border-radius:20px; padding:48px; text-align:center;">
+        <div style="width:64px; height:64px; background:#ede9fe; border-radius:16px; display:flex; align-items:center; justify-content:center; margin:0 auto 24px; font-size:32px;">
+            🚀
+        </div>
+        <h2 style="font-size:24px; font-weight:900; color:#1a1a2e; margin-bottom:12px;">Discover Your Complete Career Journey</h2>
+        <p style="color:#9491b4; font-size:14px; line-height:1.6; margin-bottom:32px; max-width:600px; margin-left:auto; margin-right:auto;">
+            Our AI-powered career guide analyzes your academic stream to provide comprehensive career recommendations 
+            with detailed insights, required skills, and industry information.
         </p>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; max-width:600px; margin:0 auto;">
+            <div style="background:#f8f7ff; border-radius:16px; padding:20px;">
+                <div style="font-size:24px; margin-bottom:12px;">🧠</div>
+                <h3 style="color:#1a1a2e; font-weight:700; font-size:14px; margin-bottom:8px;">AI Analysis</h3>
+                <p style="color:#9491b4; font-size:12px; line-height:1.4;">Smart predictions based on your field</p>
+            </div>
+            <div style="background:#f8f7ff; border-radius:16px; padding:20px;">
+                <div style="font-size:24px; margin-bottom:12px;">💼</div>
+                <h3 style="color:#1a1a2e; font-weight:700; font-size:14px; margin-bottom:8px;">Career Details</h3>
+                <p style="color:#9491b4; font-size:12px; line-height:1.4;">Salary, growth, skills, and insights</p>
+            </div>
+            <div style="background:#f8f7ff; border-radius:16px; padding:20px;">
+                <div style="font-size:24px; margin-bottom:12px;">📈</div>
+                <h3 style="color:#1a1a2e; font-weight:700; font-size:14px; margin-bottom:8px;">Market Data</h3>
+                <p style="color:#9491b4; font-size:12px; line-height:1.4;">Industry trends and job outlook</p>
+            </div>
+        </div>
     </div>
     {% endif %}
 

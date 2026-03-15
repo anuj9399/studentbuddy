@@ -1,0 +1,714 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Quiz Generator - StudentBuddy{% endblock %}
+
+{% block content %}
+<style>
+/* Custom styles for Quiz Generator */
+.quiz-header {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.quiz-title {
+    font-size: 32px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #6d28d9, #4f46e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+}
+
+.quiz-subtitle {
+    color: #9491b4;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid #eee8ff;
+    border-radius: 18px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 10px rgba(109,40,217,0.05);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(109,40,217,0.15);
+}
+
+.stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.stat-icon.purple {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.stat-icon.blue {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.stat-icon.yellow {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.stat-number {
+    font-size: 28px;
+    font-weight: 900;
+    color: #1a1a2e;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #9491b4;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+}
+
+.recent-quizzes-card {
+    background: white;
+    border: 1px solid #eee8ff;
+    border-radius: 20px;
+    padding: 28px;
+}
+
+.recent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.recent-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1a1a2e;
+}
+
+.create-new-btn {
+    background: #ede9fe;
+    color: #6d28d9;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.create-new-btn:hover {
+    background: #6d28d9;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.quiz-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid #f5f3ff;
+    transition: all 0.2s ease;
+}
+
+.quiz-row:last-child {
+    border-bottom: none;
+}
+
+.quiz-row:hover {
+    background: #f8f7ff;
+    margin: 0 -12px;
+    padding: 14px 12px;
+    border-radius: 12px;
+}
+
+.quiz-info {
+    flex: 1;
+}
+
+.quiz-topic {
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+}
+
+.quiz-subject {
+    font-size: 12px;
+    color: #9491b4;
+}
+
+.quiz-university {
+    color: #9491b4;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.quiz-date {
+    color: #9491b4;
+    font-size: 12px;
+    text-align: center;
+    min-width: 40px;
+}
+
+.difficulty-badge {
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    margin: 0 16px;
+}
+
+.difficulty-badge.easy {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.difficulty-badge.medium {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.difficulty-badge.hard {
+    background: #fff1f2;
+    color: #be123c;
+}
+
+.score-badge {
+    border-radius: 12px;
+    padding: 6px 14px;
+    font-size: 15px;
+    font-weight: 900;
+    margin-right: 16px;
+}
+
+.score-badge.excellent {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.score-badge.good {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.score-badge.average {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.score-badge.poor {
+    background: #fff1f2;
+    color: #be123c;
+}
+
+.view-results-btn {
+    background: #f5f3ff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-results-btn:hover {
+    background: #ede9fe;
+    transform: scale(1.1);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px;
+}
+
+.empty-emoji {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.empty-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+}
+
+.empty-desc {
+    color: #9491b4;
+    margin-bottom: 24px;
+}
+
+.create-quiz-btn {
+    background: linear-gradient(135deg, #6d28d9, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.create-quiz-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(109,40,217,0.35);
+}
+
+.quick-quiz-card {
+    background: white;
+    border: 1px solid #eee8ff;
+    border-radius: 20px;
+    padding: 28px;
+    position: sticky;
+    top: 24px;
+}
+
+.quick-header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #6d28d9, #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+
+.quick-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+}
+
+.quick-subtitle {
+    color: #9491b4;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.topic-input {
+    width: 100%;
+    background: #f8f7ff;
+    border: 2px solid #eee8ff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-family: 'Nunito', sans-serif;
+    color: #1a1a2e;
+    margin-bottom: 16px;
+    transition: all 0.2s ease;
+}
+
+.topic-input:focus {
+    border-color: #6d28d9;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(109,40,217,0.1);
+}
+
+.difficulty-pills {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.diff-pill {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: 2px solid #eee8ff;
+    background: white;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.diff-pill:hover {
+    transform: translateY(-1px);
+}
+
+.diff-pill.selected.easy {
+    background: #dcfce7;
+    border-color: #16a34a;
+    color: #15803d;
+}
+
+.diff-pill.selected.medium {
+    background: #fef9c3;
+    border-color: #d97706;
+    color: #a16207;
+}
+
+.diff-pill.selected.hard {
+    background: #fff1f2;
+    border-color: #ef4444;
+    color: #be123c;
+}
+
+.question-pills {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.question-pill {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: 2px solid #eee8ff;
+    background: white;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.question-pill:hover {
+    transform: translateY(-1px);
+}
+
+.question-pill.selected {
+    background: #ede9fe;
+    border-color: #6d28d9;
+    color: #6d28d9;
+}
+
+.generate-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #6d28d9, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 15px;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 16px;
+}
+
+.generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(109,40,217,0.35);
+}
+
+.generate-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.advanced-link {
+    text-align: center;
+    color: #9491b4;
+    font-size: 13px;
+}
+
+.advanced-link a {
+    color: #6d28d9;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.advanced-link a:hover {
+    text-decoration: underline;
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+}
+
+.step-card {
+    background: white;
+    border: 1px solid #eee8ff;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.step-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(109,40,217,0.15);
+}
+
+.step-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #6d28d9;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+}
+
+.step-emoji {
+    font-size: 32px;
+    margin: 12px 0;
+}
+
+.step-title {
+    font-weight: 800;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+}
+
+.step-desc {
+    font-size: 13px;
+    color: #9491b4;
+    line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-quiz-card {
+        position: static;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .steps-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quiz-title {
+        font-size: 24px;
+    }
+}
+</style>
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="quiz-header">
+        <h1 class="quiz-title">AI Quiz Generator 🧠</h1>
+        <p class="quiz-subtitle">Test your knowledge with AI-powered quizzes</p>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon purple">📝</div>
+            <div>
+                <div class="stat-number">{{ total_quizzes }}</div>
+                <div class="stat-label">TOTAL QUIZZES TAKEN</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">📊</div>
+            <div>
+                <div class="stat-number">{{ avg_percentage }}%</div>
+                <div class="stat-label">AVERAGE SCORE</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon yellow">🏆</div>
+            <div>
+                <div class="stat-number">{{ best_percentage }}%</div>
+                <div class="stat-label">BEST SCORE</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+        <!-- Left Column - Recent Quizzes -->
+        <div class="recent-quizzes-card">
+            <div class="recent-header">
+                <h2 class="recent-title">Recent Quizzes 📋</h2>
+                <a href="{% url 'quiz:create' %}" class="create-new-btn">Create New →</a>
+            </div>
+
+            {% if recent_quizzes %}
+                {% for quiz in recent_quizzes %}
+                <div class="quiz-row">
+                    <div class="quiz-info">
+                        <div class="quiz-subject">{{ quiz.subject|default:"General" }}</div>
+                        <div class="quiz-topic">{{ quiz.chapter|default:quiz.topic|truncatechars:25 }}</div>
+                        {% if quiz.university %}
+                            <div class="quiz-university">{{ quiz.university }}</div>
+                        {% endif %}
+                    </div>
+                    <span class="difficulty-badge {{ quiz.difficulty }}">
+                        {{ quiz.get_difficulty_display }}
+                    </span>
+                    {% with percentage=quiz.get_percentage %}
+                        {% if percentage >= 80 %}
+                            <span class="score-badge excellent">{{ percentage }}%</span>
+                        {% elif percentage >= 60 %}
+                            <span class="score-badge good">{{ percentage }}%</span>
+                        {% elif percentage >= 40 %}
+                            <span class="score-badge average">{{ percentage }}%</span>
+                        {% else %}
+                            <span class="score-badge poor">{{ percentage }}%</span>
+                        {% endif %}
+                    {% endwith %}
+                    <div class="quiz-date">{{ quiz.created_at|date:"M d" }}</div>
+                    <a href="{% url 'quiz:results' quiz.id %}" class="view-results-btn">📊</a>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-emoji">🧠</div>
+                    <div class="empty-title">No quizzes yet</div>
+                    <div class="empty-desc">Generate your first AI quiz!</div>
+                    <a href="{% url 'quiz:create' %}" class="create-quiz-btn">Create Quiz</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column - Quick Quiz -->
+        <div class="quick-quiz-card">
+            <div class="quick-header-icon">⚡</div>
+            <h3 class="quick-title">Quick Quiz</h3>
+            <p class="quick-subtitle">Generate instantly</p>
+
+            <form method="post" action="{% url 'quiz:create' %}" id="quick-quiz-form">
+                {% csrf_token %}
+                <input type="text" 
+                       class="topic-input" 
+                       name="topic" 
+                       placeholder="e.g. Binary Trees, SQL Joins, Python Lists..."
+                       required>
+
+                <div class="difficulty-pills">
+                    <div class="diff-pill" data-difficulty="easy">🟢 Easy</div>
+                    <div class="diff-pill selected medium" data-difficulty="medium">🟡 Medium</div>
+                    <div class="diff-pill" data-difficulty="hard">🔴 Hard</div>
+                </div>
+
+                <div class="question-pills">
+                    <div class="question-pill" data-questions="5">5</div>
+                    <div class="question-pill selected" data-questions="10">10</div>
+                    <div class="question-pill" data-questions="15">15</div>
+                    <div class="question-pill" data-questions="20">20</div>
+                </div>
+
+                <input type="hidden" name="difficulty" value="medium" id="selected-difficulty">
+                <input type="hidden" name="total_questions" value="10" id="selected-questions">
+
+                <button type="submit" class="generate-btn" id="generate-btn">
+                    🧠 Generate Quiz with AI
+                </button>
+            </form>
+
+            <div class="advanced-link">
+                Or create detailed quiz
+                <a href="{% url 'quiz:create' %}">Advanced Settings ⚙️</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="steps-grid">
+        <div class="step-card">
+            <div class="step-number">1</div>
+            <div class="step-emoji">🎯</div>
+            <div class="step-title">Choose Topic</div>
+            <div class="step-desc">Pick any subject you want to test your knowledge on</div>
+        </div>
+        <div class="step-card">
+            <div class="step-number">2</div>
+            <div class="step-emoji">🧠</div>
+            <div class="step-title">AI Generates</div>
+            <div class="step-desc">Our AI creates personalized MCQ questions instantly</div>
+        </div>
+        <div class="step-card">
+            <div class="step-number">3</div>
+            <div class="step-emoji">📊</div>
+            <div class="step-title">Get Results</div>
+            <div class="step-desc">Receive instant feedback with detailed explanations</div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Difficulty pill selection
+    const diffPills = document.querySelectorAll('.diff-pill');
+    const diffInput = document.getElementById('selected-difficulty');
+    
+    diffPills.forEach(pill => {
+        pill.addEventListener('click', function() {
+            diffPills.forEach(p => p.classList.remove('selected', 'easy', 'medium', 'hard'));
+            this.classList.add('selected', this.dataset.difficulty);
+            diffInput.value = this.dataset.difficulty;
+        });
+    });
+
+    // Question pill selection
+    const questionPills = document.querySelectorAll('.question-pill');
+    const questionInput = document.getElementById('selected-questions');
+    
+    questionPills.forEach(pill => {
+        pill.addEventListener('click', function() {
+            questionPills.forEach(p => p.classList.remove('selected'));
+            this.classList.add('selected');
+            questionInput.value = this.dataset.questions;
+        });
+    });
+
+    // Form submission loading
+    const form = document.getElementById('quick-quiz-form');
+    const generateBtn = document.getElementById('generate-btn');
+    
+    form.addEventListener('submit', function() {
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>🧠 AI is generating...';
+    });
+});
+</script>
+{% endblock %}

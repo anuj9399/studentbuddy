@@ -152,3 +152,6 @@ def complete_task(request, task_id):
     )
     
     return redirect("tasks")
+
+def about_us(request):
+    return render(request, 'about.html')

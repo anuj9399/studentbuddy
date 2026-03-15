@@ -54,11 +54,46 @@
             border-color: #c4b5fd;
         }
         
+        /* User card text overflow fixes */
+        .user-info {
+            overflow: hidden;
+            min-width: 0;
+            flex: 1;
+        }
+        .user-name {
+            font-weight: 800;
+            font-size: 14px;
+            color: #1a1a2e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .user-role {
+            font-size: 11px;
+            color: #7c6fb0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Button container alignment fixes */
+        .flex.justify-end {
+            align-items: center;
+        }
+        .flex.justify-center {
+            align-items: center;
+        }
+        .flex.gap-2 > .btn,
+        .flex.gap-3 > .btn {
+            flex-shrink: 0;
+        }
+        
         .layout-wrapper {
             display: flex;
             min-height: 100vh;
         }
         
+        /* Sidebar styling */
         .sidebar {
             width: 260px;
             min-height: 100vh;
@@ -105,37 +140,55 @@
             font-weight: 700;
             font-family: 'Nunito', sans-serif;
             transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            min-height: 44px;
+            box-sizing: border-box;
+            line-height: 1.2;
+            padding: 12px 32px;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
         }
         
         .btn-primary {
             background: var(--gradient);
             color: white;
-            border: none;
+            box-shadow: 0 4px 12px rgba(109,40,217,0.15);
         }
         
         .btn-primary:hover {
-            transform: translateY(-1px);
+            transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(109,40,217,0.25);
         }
         
         .btn-secondary {
             background: var(--primary-soft);
             color: var(--primary);
-            border: none;
+            box-shadow: 0 4px 12px rgba(109,40,217,0.1);
         }
         
         .btn-secondary:hover {
             background: #ddd6fe;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(109,40,217,0.15);
         }
         
         .btn-danger {
             background: #fff1f2;
             color: #be123c;
-            border: none;
+            box-shadow: 0 4px 12px rgba(190,18,60,0.1);
         }
         
         .btn-danger:hover {
             background: #fecaca;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(190,18,60,0.2);
         }
         
         .input {
@@ -244,10 +297,12 @@
             animation: fadeInUp 0.4s ease forwards;
         }
         
-        .fade-in-up-delay-1 { animation-delay: 0.1s; opacity: 0; }
-        .fade-in-up-delay-2 { animation-delay: 0.2s; opacity: 0; }
-        .fade-in-up-delay-3 { animation-delay: 0.3s; opacity: 0; }
-        .fade-in-up-delay-4 { animation-delay: 0.4s; opacity: 0; }
+        .fade-in-up-delay-1 { animation-delay: 0.1s; }
+        .fade-in-up-delay-2 { animation-delay: 0.2s; }
+        .fade-in-up-delay-3 { animation-delay: 0.3s; }
+        .fade-in-up-delay-4 { animation-delay: 0.4s; }
+        .fade-in-up-delay-5 { animation-delay: 0.5s; }
+        .fade-in-up-delay-6 { animation-delay: 0.6s; }
         
         .table {
             border-radius: 16px;
@@ -444,6 +499,26 @@
           min-width: 0;
         }
         
+        /* Ensure content visibility */
+        .tab-content {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+        
+        .tab-content.hidden {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+        }
+        
+        /* Fix all cards to properly contain their content */
+        .card, [class*="card"] {
+          height: auto !important;
+          min-height: unset;
+          overflow: visible;
+        }
+        
         /* Global fixes for dark theme classes */
         .glass-panel {
             background: white !important;
@@ -506,6 +581,10 @@
                         <a href="{% url 'profile' %}" class="sidebar-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %} flex items-center gap-2.5 px-3 py-2.5">
                             <i class="fa-solid fa-user w-3.5"></i>
                             <span>Profile</span>
+                        </a>
+                        <a href="/about/" class="sidebar-link {% if request.path == '/about/' %}active{% endif %} flex items-center gap-2.5 px-3 py-2.5">
+                            <span class="w-3.5 text-center">ℹ️</span>
+                            <span>About Us</span>
                         </a>
                     </div>
                 </nav>

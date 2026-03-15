@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-[26px] font-black text-[#1a1a2e] mb-2">Resource Hub 📚</h1>
+        <p class="text-[14px] text-[#9491b4]">Find study materials, notes and question papers for your subjects</p>
+    </div>
+
+    <!-- Hero Search Form -->
+    <div class="card rounded-[20px] p-9 mb-8">
+        <div class="text-center mb-8">
+            <h2 class="text-[20px] font-black text-[#1a1a2e] mb-2">
+                🔍 Find Study Resources
+            </h2>
+            <p class="text-[13px] text-[#9491b4]">Search across Google Drive, YouTube, NPTEL, SlideShare and more</p>
+        </div>
+
+        <form method="POST" action="{% url 'resources:search' %}">
+            {% csrf_token %}
+            
+            <!-- Row 1: University and Stream -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-[12px] font-black text-[#1a1a2e] mb-2">University</label>
+                    <select name="university" required class="input w-full">
+                        <option value="">Select University</option>
+                        {% for university in universities %}
+                        <option value="{{ university }}">{{ university }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[12px] font-black text-[#1a1a2e] mb-2">Stream</label>
+                    <select name="stream" required class="input w-full">
+                        <option value="">Select Stream</option>
+                        {% for stream in streams %}
+                        <option value="{{ stream }}">{{ stream }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 2: Branch and Semester -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-[12px] font-black text-[#1a1a2e] mb-2">Branch</label>
+                    <select name="branch" required class="input w-full">
+                        <option value="">Select Branch</option>
+                        {% for branch in branches %}
+                        <option value="{{ branch }}">{{ branch }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[12px] font-black text-[#1a1a2e] mb-2">Semester</label>
+                    <select name="semester" required class="input w-full">
+                        <option value="">Select Semester</option>
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                        <option value="3">Semester 3</option>
+                        <option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option>
+                        <option value="6">Semester 6</option>
+                        <option value="7">Semester 7</option>
+                        <option value="8">Semester 8</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 3: Subject -->
+            <div class="mb-4">
+                <label class="block text-[12px] font-black text-[#1a1a2e] mb-2">Subject</label>
+                <input type="text" name="subject" required 
+                       placeholder="e.g. Data Structures, DBMS, Thermodynamics"
+                       class="input w-full">
+            </div>
+
+            <!-- Row 4: Resource Type -->
+            <div class="mb-6">
+                <label class="block text-[12px] font-black text-[#1a1a2e] mb-2">Resource Type</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {% for resource_type in resource_types %}
+                    <label class="flex items-center p-3 border border-[#ddd6fe] rounded-xl cursor-pointer hover:bg-[#f8f7ff] transition-colors">
+                        <input type="radio" name="resource_type" value="{{ resource_type }}" required 
+                               class="mr-2 text-[#6d28d9] focus:ring-[#6d28d9]">
+                        <span class="text-[13px] font-medium text-[#1a1a2e]">{{ resource_type }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Search Button -->
+            <button type="submit" 
+                    class="w-full btn btn-primary py-4 font-black text-[15px]">
+                🔍 Search Resources
+            </button>
+        </form>
+    </div>
+
+    <!-- Recent Searches -->
+    {% if recent_searches %}
+    <div class="mb-8">
+        <h3 class="text-[16px] font-black text-[#1a1a2e] mb-4">Recent Searches</h3>
+        <div class="flex flex-wrap gap-2">
+            {% for search in recent_searches %}
+            <button onclick="fillSearchForm('{{ search.university }}', '{{ search.stream }}', '{{ search.branch }}', '{{ search.semester }}', '{{ search.subject }}', '{{ search.resource_type }}')"
+                    class="px-4 py-2 bg-[#ede9fe] text-[#6d28d9] rounded-full text-[12px] font-600 hover:bg-[#ddd6fe] transition-colors">
+                {{ search.subject }} - {{ search.resource_type }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- How It Works -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card p-6 text-center">
+            <div class="text-[32px] mb-4">🔍</div>
+            <h3 class="text-[16px] font-black text-[#1a1a2e] mb-2">Smart Search</h3>
+            <p class="text-[13px] text-[#9491b4]">We build an optimized query using your details</p>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-[32px] mb-4">🌐</div>
+            <h3 class="text-[16px] font-black text-[#1a1a2e] mb-2">Web Search</h3>
+            <p class="text-[13px] text-[#9491b4]">Google searches across 10+ educational platforms</p>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-[32px] mb-4">📚</div>
+            <h3 class="text-[16px] font-black text-[#1a1a2e] mb-2">Instant Results</h3>
+            <p class="text-[13px] text-[#9491b4]">Get 10 relevant resources in seconds</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function fillSearchForm(university, stream, branch, semester, subject, resourceType) {
+    document.querySelector('select[name="university"]').value = university;
+    document.querySelector('select[name="stream"]').value = stream;
+    document.querySelector('select[name="branch"]').value = branch;
+    document.querySelector('select[name="semester"]').value = semester;
+    document.querySelector('input[name="subject"]').value = subject;
+    
+    // Find and check the radio button for resource type
+    const radioButtons = document.querySelectorAll('input[name="resource_type"]');
+    radioButtons.forEach(radio => {
+        if (radio.value === resourceType) {
+            radio.checked = true;
+        }
+    });
+}
+</script>
+
+{% endblock %}

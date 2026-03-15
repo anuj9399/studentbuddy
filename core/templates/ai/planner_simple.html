@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="background: yellow; padding: 20px; margin: 20px;">
+    <h1>STUDY PLANNER - SIMPLE VERSION</h1>
+    
+    {% if plans %}
+        <div style="background: green; padding: 10px; margin: 10px;">
+            <h2>PLANS FOUND: {{ plans|length }}</h2>
+            {% for plan in plans %}
+                <div style="background: white; padding: 10px; margin: 5px; border: 1px solid black;">
+                    <h3>{{ plan.title }}</h3>
+                    <p>Exam: {{ plan.exam_date|date:"M d, Y" }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="background: red; padding: 10px; margin: 10px;">
+            <h2>NO PLANS FOUND</h2>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

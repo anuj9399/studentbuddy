@@ -6,9 +6,34 @@ from .models import StudyGroup, GroupMessage
 
 class GroupChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        print(f"🔌 WebSocket connection attempt for group_id: {self.scope['url_route']['kwargs']['group_id']}")
+        print(f"👤 User: {self.scope.get('user', 'Anonymous')} (authenticated: {self.scope.get('user', {}).is_authenticated if self.scope.get('user') else False})")
+        
+        # Get user from scope (handle both authenticated and anonymous)
+        user = self.scope.get('user')
+        if not user or not user.is_authenticated:
+            print("❌ User not authenticated, closing connection")
+            await self.close(code=4001)  # Custom code for authentication failure
+            return
+            
         self.group_id = self.scope['url_route']['kwargs']['group_id']
         self.group_obj = await self.get_group()
+        
+        # Check if group exists
+        if not self.group_obj:
+            print(f"❌ Group {self.group_id} not found, closing connection")
+            await self.close(code=4004)  # Custom code for not found
+            return
+            
+        # Check if user is a member of the group
+        is_member = await self.is_user_member()
+        if not is_member:
+            print(f"❌ User {user.username} not member of group {self.group_id}, closing connection")
+            await self.close(code=4003)  # Custom code for forbidden
+            return
+            
         self.group_name = f'group_{self.group_id}'
+        print(f"✅ User {user.username} connected to group {self.group_id}")
 
         # Join room group
         await self.channel_layer.group_add(
@@ -17,8 +42,10 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        print(f"🎉 WebSocket connection accepted for group {self.group_id}")
 
     async def disconnect(self, close_code):
+        print(f"🔌 WebSocket disconnected for group {self.group_id}, code: {close_code}")
         # Leave room group
         await self.channel_layer.group_discard(
             self.group_name,
@@ -104,6 +131,11 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
             return StudyGroup.objects.get(id=self.group_id)
         except StudyGroup.DoesNotExist:
             return None
+
+    @database_sync_to_async
+    def is_user_member(self):
+        user = self.scope["user"]
+        return self.group_obj.members.filter(id=user.id).exists()
 
     @database_sync_to_async
     def save_message(self, sender, message):

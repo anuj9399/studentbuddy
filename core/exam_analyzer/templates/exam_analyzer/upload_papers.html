@@ -5,7 +5,7 @@
     <!-- Header -->
     <div class="mb-8">
         <a href="{% url 'exam_analyzer:analyzer_home' %}" class="text-[var(--primary)] hover:text-[var(--primary-light)] mb-4 inline-block">
-            <i class="fa-solid fa-arrow-left mr-2"></i>Back to Exam Analyzer
+            ⬅️ Back to Exam Analyzer
         </a>
         <h1 class="text-[26px] font-black text-[var(--text-dark)] mb-2">{{ subject.subject_name }}</h1>
         <p class="text-[14px] text-[var(--text-muted)]">Upload previous year question papers for AI analysis</p>
@@ -20,7 +20,7 @@
             <div id="dropZone" 
                  class="border-2 border-dashed border-[var(--primary-border)] rounded-xl p-12 text-center hover:border-[var(--primary)] transition-colors cursor-pointer">
                 <div class="w-16 h-16 bg-[var(--primary-soft)] rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-cloud-upload-alt text-[var(--primary)] text-2xl"></i>
+                    📤
                 </div>
                 
                 <h3 class="text-[18px] font-black text-[var(--text-dark)] mb-2">
@@ -32,7 +32,7 @@
                 </p>
                 
                 <input type="file" 
-                       name="papers" 
+                       name="pdf_files" 
                        id="fileInput" 
                        multiple 
                        accept=".pdf"
@@ -41,8 +41,7 @@
                 <button type="button" 
                         onclick="document.getElementById('fileInput').click()"
                         class="btn btn-secondary">
-                    <i class="fa-solid fa-folder-open mr-2"></i>
-                    Browse Files
+                    📁 Browse Files
                 </button>
             </div>
             
@@ -57,55 +56,59 @@
                         class="btn btn-primary px-8 py-3"
                         id="uploadBtn"
                         disabled>
-                    <i class="fa-solid fa-brain mr-2"></i>
-                    Analyze Papers
+                    🧠 Analyze Papers
                 </button>
             </div>
         </form>
     </div>
     
     <!-- Uploaded Papers -->
-    {% if uploaded_papers %}
+    {% if papers %}
     <div class="card rounded-[20px] p-6">
         <h3 class="text-[18px] font-black text-[var(--text-dark)] mb-4">
-            <i class="fa-solid fa-file-pdf mr-2 text-[var(--primary)]"></i>
-            Uploaded Papers ({{ uploaded_papers|length }})
+            📄 Uploaded Papers ({{ papers|length }})
         </h3>
         
         <div class="space-y-3">
-            {% for paper in uploaded_papers %}
+            {% for paper in papers %}
             <div class="flex items-center justify-between p-4 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
                 <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-file-pdf text-[var(--primary)]"></i>
+                    📄
                     <div>
-                        <div class="font-black text-[var(--text-dark)]">{{ paper.filename }}</div>
+                        <div class="font-black text-[var(--text-dark)]">{{ paper.file.name }}</div>
                         <div class="text-[11px] text-[var(--text-muted)]">
-                            Uploaded {{ paper.uploaded_at|timesince }} ago • {{ paper.file_size|filesizeformat }}
+                            Year: {{ paper.year }} • Uploaded {{ paper.uploaded_at|timesince }} ago • {{ paper.file.size|filesizeformat }}
                         </div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    {% if paper.analyzed %}
-                        <span class="status-badge status-success">Analyzed</span>
+                    {% if paper.extracted_text %}
+                        <span class="status-badge status-success">Processed</span>
                     {% else %}
-                        <span class="status-badge status-warning">Pending</span>
+                        <span class="status-badge status-warning">Processing</span>
                     {% endif %}
-                    <button onclick="deletePaper({{ paper.id }})" 
+                    <button onclick="deletePaper('{{ paper.id }}')" 
                             class="text-[var(--text-muted)] hover:text-red-500 transition-colors">
-                        <i class="fa-solid fa-trash"></i>
+                        🗑️
                     </button>
                 </div>
             </div>
             {% endfor %}
         </div>
         
+        {% if papers|length >= 2 %}
         <div class="mt-6 text-center">
-            <a href="{% url 'exam_analyzer:analysis_results' subject.id %}" 
-               class="btn btn-primary">
-                <i class="fa-solid fa-chart-line mr-2"></i>
-                View Analysis Results
-            </a>
+            <button onclick="runAnalysis()" class="btn btn-primary">
+                🧠 Run AI Analysis
+            </button>
         </div>
+        {% else %}
+        <div class="mt-6 text-center">
+            <p class="text-[var(--text-muted)] text-sm">
+                ℹ️ Upload at least 2 papers to enable AI analysis
+            </p>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 
@@ -162,20 +165,30 @@ function handleFiles(files) {
     fileList.innerHTML = '';
     uploadBtn.disabled = files.length === 0;
     
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file, index) => {
         if (file.type === 'application/pdf') {
             const fileItem = document.createElement('div');
             fileItem.className = 'flex items-center justify-between p-3 bg-[var(--bg)] rounded-xl border border-[var(--border)]';
             fileItem.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-file-pdf text-[var(--primary)]"></i>
-                    <div>
+                <div class="flex items-center gap-3 flex-1">
+                    📄
+                    <div class="flex-1">
                         <div class="font-black text-[var(--text-dark)] text-sm">${file.name}</div>
                         <div class="text-[11px] text-[var(--text-muted)]">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-[11px] text-[var(--text-muted)]">Year:</label>
+                        <input type="number" 
+                               name="years" 
+                               placeholder="2023" 
+                               min="2000" 
+                               max="2030" 
+                               class="w-20 px-2 py-1 text-xs border border-[var(--border)] rounded"
+                               required>
+                    </div>
                 </div>
-                <button type="button" onclick="this.parentElement.remove()" class="text-[var(--text-muted)] hover:text-red-500">
-                    <i class="fa-solid fa-times"></i>
+                <button type="button" onclick="this.parentElement.remove()" class="text-[var(--text-muted)] hover:text-red-500 ml-2">
+                    ❌
                 </button>
             `;
             fileList.appendChild(fileItem);
@@ -185,9 +198,87 @@ function handleFiles(files) {
 
 function deletePaper(paperId) {
     if (confirm('Are you sure you want to delete this paper?')) {
-        // Implement delete functionality
-        window.location.reload();
+        // Get CSRF token from cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        const csrftoken = getCookie('csrftoken');
+        
+        fetch(`/exam-analyzer/delete-paper/${paperId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting paper: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting paper');
+        });
     }
+}
+
+function runAnalysis() {
+    const subjectId = "{{ subject.id }}";
+    
+    // Get CSRF token from cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+    
+    fetch(`/exam-analyzer/subject/${subjectId}/analyze/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Analysis completed successfully!');
+            window.location.href = `/exam-analyzer/subject/${subjectId}/analysis/`;
+        } else {
+            alert('Analysis failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error running analysis');
+    });
 }
 </script>
 

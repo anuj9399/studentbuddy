@@ -301,6 +301,21 @@ Summarize this into exam-ready study notes:
     return render(request, "ai/smart_notes.html", {"summary": summary})
 
 @login_required
+def planner_simple(request):
+    """Simple test view for Study Planner"""
+    plans = StudyPlan.objects.filter(user=request.user)
+    return render(request, "ai/planner_simple.html", {
+        'plans': plans
+    })
+
+@login_required
+def planner_test(request):
+    """Test view for Study Planner visibility"""
+    return render(request, "ai/planner_test.html", {
+        'plans': StudyPlan.objects.filter(user=request.user)
+    })
+
+@login_required
 def planner(request):
     """Study Planner main page"""
     plans = StudyPlan.objects.filter(user=request.user)
@@ -705,53 +720,95 @@ def get_current_week_sessions(today, sessions):
 @login_required
 def career(request):
     """Career Guide view with AI predictions"""
-    from accounts.models import StudentProfile, CareerPath, StudyActivity
+    import json
+    import requests
+    import os
     
-    # Get user profile
-    profile, created = StudentProfile.objects.get_or_create(user=request.user)
-    
-    career_predictions = None
+    careers = None
     selected_stream = None
+    error_message = None
     
     if request.method == "POST":
-        # Get stream from form input (text input, not dropdown)
         selected_stream = request.POST.get("stream", "").strip()
         
         if selected_stream:
-            # Get career predictions based on stream - more flexible matching
-            career_predictions = CareerPath.objects.filter(
-                stream__icontains=selected_stream
-            )
-            
-            # If no exact match, try partial matching on words
-            if not career_predictions:
-                stream_words = selected_stream.split()
-                for word in stream_words:
-                    matches = CareerPath.objects.filter(stream__icontains=word)
-                    if matches:
-                        career_predictions = matches
-                        break
-            
-            # Pre-process skills and industries for each career
-            for career in career_predictions:
-                career.skills_list = [skill.strip() for skill in career.key_skills.split(',')]
-                career.industries_list = [industry.strip() for industry in career.industries.split(',')]
-            
-            # Record study activity
-            StudyActivity.objects.create(
-                user=request.user,
-                activity_type='career_analysis',
-                duration_minutes=10
-            )
-    
-    # Get all available streams for suggestions
-    all_streams = CareerPath.objects.values_list('stream', flat=True).distinct()
+            try:
+                # AI API call to OpenRouter
+                prompt = f"""You are a comprehensive career counselor for Indian students.
+For the academic stream "{selected_stream}", provide exactly 8 career paths.
+
+Return ONLY valid JSON in this exact format, no markdown, no extra text:
+{{
+  "careers": [
+    {{
+      "title": "Career Title",
+      "field": "Field/Domain",
+      "description": "2-3 sentence description of this career",
+      "match_percentage": 95,
+      "avg_salary": "₹X LPA - ₹Y LPA",
+      "growth": "High/Medium/Low",
+      "education": "Required degree",
+      "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"],
+      "job_outlook": "2-3 sentences about job market",
+      "industries": ["Industry 1", "Industry 2", "Industry 3", "Industry 4"],
+      "career_steps": [
+        {{"step": 1, "title": "Step title", "description": "What to do", "duration": "X years"}},
+        {{"step": 2, "title": "Step title", "description": "What to do", "duration": "X years"}},
+        {{"step": 3, "title": "Step title", "description": "What to do", "duration": "X years"}},
+        {{"step": 4, "title": "Step title", "description": "What to do", "duration": "X years"}},
+        {{"step": 5, "title": "Step title", "description": "What to do", "duration": "X years"}},
+        {{"step": 6, "title": "Step title", "description": "What to do", "duration": "X years"}}
+      ]
+    }}
+  ]
+}}
+
+Generate exactly 8 diverse career options for {selected_stream} students in India.
+Use Indian salary ranges in LPA (Lakhs Per Annum).
+Make career_steps a realistic 6-step journey from education to senior level.
+"""
+
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY', 'sk-or-v1-your-key-here')}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "anthropic/claude-3-haiku",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 4000,
+                        "temperature": 0.7
+                    },
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    raw_content = response_data['choices'][0]['message']['content']
+                    
+                    # Strip markdown and parse JSON
+                    raw_content = raw_content.replace('```json', '').replace('```', '').strip()
+                    data = json.loads(raw_content)
+                    careers = data.get('careers', [])
+                    
+                else:
+                    error_message = "AI service temporarily unavailable. Please try again."
+                    
+            except json.JSONDecodeError as e:
+                error_message = "Error parsing AI response. Please try again."
+                print(f"JSON Error: {e}")
+            except requests.RequestException as e:
+                error_message = "Network error. Please check your connection and try again."
+                print(f"Request Error: {e}")
+            except Exception as e:
+                error_message = "An unexpected error occurred. Please try again."
+                print(f"Unexpected Error: {e}")
     
     context = {
-        'profile': profile,
-        'career_predictions': career_predictions,
+        'careers': careers,
         'selected_stream': selected_stream,
-        'all_streams': sorted(list(set(all_streams))),
+        'error_message': error_message,
     }
     
-    return render(request, "ai/career_final.html", context)
+    return render(request, "ai/career.html", context)

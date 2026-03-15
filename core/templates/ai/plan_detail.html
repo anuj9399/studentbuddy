@@ -17,24 +17,30 @@
             <!-- Plan Info -->
             <div class="lg:col-span-2">
                 <h1 class="text-3xl font-bold text-white mb-4">{{ plan.title }}</h1>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="text-center p-4 bg-slate-800/50 rounded-lg">
-                        <div class="text-2xl font-bold {% if plan.days_remaining <= 7 %}text-red-400{% elif plan.days_remaining <= 30 %}text-orange-400{% else %}text-green-400{% endif %}">
+                <div class="grid grid-cols-4 gap-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div class="plan-stat-box" style="background: white; border: 1px solid #eee8ff; border-radius: 16px; padding: 20px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 120px; box-shadow: 0 2px 10px rgba(109,40,217,0.05);">
+                        <div class="text-2xl font-bold" style="font-size: 32px; font-weight: 900; line-height: 1; color: #6d28d9;">
                             {{ plan.days_remaining }}
                         </div>
-                        <div class="text-slate-400 text-sm">Days Left</div>
+                        <div style="font-size: 12px; font-weight: 600; color: #9491b4; margin-top: 6px;">Days Left</div>
                     </div>
-                    <div class="text-center p-4 bg-slate-800/50 rounded-lg">
-                        <div class="text-2xl font-bold text-purple-400">{{ plan.total_sessions }}</div>
-                        <div class="text-slate-400 text-sm">Total Sessions</div>
+                    <div class="plan-stat-box" style="background: white; border: 1px solid #eee8ff; border-radius: 16px; padding: 20px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 120px; box-shadow: 0 2px 10px rgba(109,40,217,0.05);">
+                        <div class="text-2xl font-bold" style="font-size: 32px; font-weight: 900; line-height: 1; color: #0369a1;">
+                            {{ plan.total_sessions }}
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: #9491b4; margin-top: 6px;">Study Days</div>
                     </div>
-                    <div class="text-center p-4 bg-slate-800/50 rounded-lg">
-                        <div class="text-2xl font-bold text-green-400">{{ plan.completed_sessions }}</div>
-                        <div class="text-slate-400 text-sm">Completed</div>
+                    <div class="plan-stat-box" style="background: white; border: 1px solid #eee8ff; border-radius: 16px; padding: 20px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 120px; box-shadow: 0 2px 10px rgba(109,40,217,0.05);">
+                        <div class="text-2xl font-bold" style="font-size: 32px; font-weight: 900; line-height: 1; color: #15803d;">
+                            {{ plan.completed_sessions }}
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: #9491b4; margin-top: 6px;">Completed</div>
                     </div>
-                    <div class="text-center p-4 bg-slate-800/50 rounded-lg">
-                        <div class="text-2xl font-bold text-orange-400">{{ plan.skipped_sessions }}</div>
-                        <div class="text-slate-400 text-sm">Skipped</div>
+                    <div class="plan-stat-box" style="background: white; border: 1px solid #eee8ff; border-radius: 16px; padding: 20px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 120px; box-shadow: 0 2px 10px rgba(109,40,217,0.05);">
+                        <div class="text-2xl font-bold" style="font-size: 32px; font-weight: 900; line-height: 1; color: #be123c;">
+                            {{ plan.skipped_sessions }}
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: #9491b4; margin-top: 6px;">Remaining</div>
                     </div>
                 </div>
             </div>

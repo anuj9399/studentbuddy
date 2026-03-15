@@ -109,6 +109,7 @@
 
             <!-- Shared Notes Tab -->
             <div id="notes-content" class="tab-content hidden">
+                <!-- DEBUG: Shared note content: {{ shared_note.content|default:"No content" }} -->
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-[18px] font-black text-[var(--text-dark)]">Collaborative Notes</h3>
@@ -231,22 +232,245 @@ function switchTab(tabName) {
 }
 
 // Chat functionality
+let websocket = null;
+let reconnectInterval = null;
+let isConnecting = false;
+const groupId = parseInt("{{ group.id }}");
+
+// WebSocket connection
+function connectWebSocket() {
+    if (isConnecting) return;
+    isConnecting = true;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/groups/${groupId}/`;
+    
+    console.log('🔌 Connecting to WebSocket:', wsUrl);
+    console.log('👤 Current user authenticated:', document.querySelector('meta[name="user-authenticated"]')?.content === 'true');
+    
+    websocket = new WebSocket(wsUrl);
+    
+    websocket.onopen = function(e) {
+        console.log('✅ WebSocket connected successfully');
+        isConnecting = false;
+        updateConnectionStatus('connected');
+        
+        // Clear reconnect interval if connection is successful
+        if (reconnectInterval) {
+            clearInterval(reconnectInterval);
+            reconnectInterval = null;
+        }
+        
+        // Load recent messages
+        loadRecentMessages();
+    };
+    
+    websocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        console.log('📨 WebSocket message received:', data);
+        handleWebSocketMessage(data);
+    };
+    
+    websocket.onclose = function(e) {
+        console.log('❌ WebSocket disconnected:', e.code, e.reason);
+        console.log('🔍 Disconnect details:', {
+            code: e.code,
+            reason: e.reason,
+            wasClean: e.wasClean
+        });
+        
+        isConnecting = false;
+        updateConnectionStatus('disconnected');
+        
+        // Show specific error based on close code
+        if (e.code === 4001) {
+            showError('Authentication failed. Please login and try again.');
+        } else if (e.code === 4003) {
+            showError('You are not a member of this study group.');
+        } else if (e.code === 4004) {
+            showError('Study group not found.');
+        } else if (!e.wasClean) {
+            console.log('🔄 Connection lost unexpectedly, will try to reconnect...');
+            // Try to reconnect after 3 seconds
+            if (!reconnectInterval) {
+                reconnectInterval = setInterval(connectWebSocket, 3000);
+            }
+        }
+    };
+    
+    websocket.onerror = function(e) {
+        console.error('❌ WebSocket error:', e);
+        isConnecting = false;
+        updateConnectionStatus('error');
+        
+        // Fallback to HTTP polling
+        console.log('🔄 Falling back to HTTP polling');
+        startHttpPolling();
+    };
+}
+
+// Handle WebSocket messages
+function handleWebSocketMessage(data) {
+    if (data.type === 'chat_message') {
+        addMessageToChat(data.sender, data.message, data.timestamp, data.message_id);
+    } else if (data.type === 'delete_message') {
+        removeMessageFromChat(data.message_id);
+    }
+}
+
+// HTTP fallback functions
+function sendMessageViaHttp(message) {
+    const formData = new FormData();
+    formData.append('message', message);
+    
+    // Get CSRF token
+    const csrfToken = getCookie('csrftoken');
+    
+    fetch(`/study-groups/send-message/${groupId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Message sent via HTTP');
+            loadRecentMessages(); // Refresh messages
+        } else if (data.error) {
+            console.error('Error sending message:', data.error);
+            showError(data.error);
+        }
+    })
+    .catch(error => {
+        console.error('HTTP request failed:', error);
+        showError('Failed to send message. Please try again.');
+    });
+}
+
+function loadRecentMessages() {
+    fetch(`/study-groups/get-messages/${groupId}/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.messages) {
+            // Clear existing messages
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = '';
+            
+            // Add all messages
+            data.messages.forEach(msg => {
+                addMessageToChat(msg.sender, msg.message, msg.timestamp, msg.id);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error loading messages:', error);
+    });
+}
+
+function startHttpPolling() {
+    // Poll for new messages every 5 seconds
+    setInterval(loadRecentMessages, 5000);
+}
+
+// Get CSRF token from cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Update connection status indicator
+function updateConnectionStatus(status) {
+    const statusElement = document.getElementById('connection-status');
+    if (statusElement) {
+        statusElement.className = `connection-status ${status}`;
+        switch(status) {
+            case 'connected':
+                statusElement.innerHTML = '<span class="text-green-500">● Connected</span>';
+                break;
+            case 'disconnected':
+                statusElement.innerHTML = '<span class="text-red-500">● Disconnected</span>';
+                break;
+            case 'error':
+                statusElement.innerHTML = '<span class="text-yellow-500">● Connection Error</span>';
+                break;
+        }
+    }
+}
+
+// Show error message
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4';
+    errorDiv.innerHTML = `
+        <strong>Error:</strong> ${message}
+        <button onclick="this.parentElement.remove()" class="float-right text-red-500 hover:text-red-700">&times;</button>
+    `;
+    
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.parentNode.insertBefore(errorDiv, chatMessages);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (errorDiv.parentNode) {
+            errorDiv.remove();
+        }
+    }, 5000);
+}
+
+// Send message function
 function sendMessage() {
     const input = document.getElementById('message-input');
     const message = input.value.trim();
     
-    if (message) {
-        // Send message via WebSocket or AJAX
-        input.value = '';
-        // Add message to chat
-        addMessageToChat('You', message, new Date());
+    if (!message) return;
+    
+    // Clear input
+    input.value = '';
+    
+    // Send via WebSocket if connected
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+            'type': 'chat_message',
+            'message': message
+        }));
+    } else {
+        // Fallback to HTTP
+        sendMessageViaHttp(message);
     }
 }
 
-function addMessageToChat(sender, message, timestamp) {
+// Add message to chat
+function addMessageToChat(sender, message, timestamp, messageId = null) {
     const chatMessages = document.getElementById('chat-messages');
+    
+    // Check if message already exists (to avoid duplicates)
+    if (messageId) {
+        const existingMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (existingMessage) {
+            return; // Message already exists
+        }
+    }
+    
     const messageDiv = document.createElement('div');
     messageDiv.className = 'flex items-start gap-3';
+    if (messageId) {
+        messageDiv.setAttribute('data-message-id', messageId);
+    }
+    
+    const timeStr = timestamp.includes(':') ? timestamp : new Date(timestamp).toLocaleTimeString();
+    
     messageDiv.innerHTML = `
         <div class="w-8 h-8 rounded-full bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0">
             <span class="text-[var(--primary)] text-xs font-black">${sender.charAt(0).toUpperCase()}</span>
@@ -254,18 +478,61 @@ function addMessageToChat(sender, message, timestamp) {
         <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
                 <span class="text-[var(--text-dark)] font-black">${sender}</span>
-                <span class="text-[11px] text-[var(--text-muted)]">${timestamp.toLocaleTimeString()}</span>
+                <span class="text-[11px] text-[var(--text-muted)]">${timeStr}</span>
             </div>
             <p class="text-[13px] text-[var(--text-dark)]">${message}</p>
         </div>
     `;
+    
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Initialize chat tab as active
+// Remove message from chat
+function removeMessageFromChat(messageId) {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageElement) {
+        messageElement.remove();
+    }
+}
+
+// Handle Enter key in message input
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize chat tab as active
     switchTab('chat');
+    
+    // Add connection status indicator
+    const chatHeader = document.querySelector('#chat-content .h-96');
+    if (chatHeader) {
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'connection-status';
+        statusDiv.className = 'connection-status text-xs mb-2';
+        statusDiv.innerHTML = '<span class="text-gray-500">● Connecting...</span>';
+        chatHeader.insertBefore(statusDiv, chatHeader.firstChild);
+    }
+    
+    // Connect WebSocket
+    connectWebSocket();
+    
+    // Add Enter key handler for message input
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    }
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (websocket) {
+        websocket.close();
+    }
+    if (reconnectInterval) {
+        clearInterval(reconnectInterval);
+    }
 });
 </script>
 
