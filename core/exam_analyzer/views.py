@@ -9,7 +9,11 @@ import os
 import pypdf
 import pytesseract
 from PIL import Image
-import pdf2image
+try:
+    import pdf2image
+    PDF2IMAGE_AVAILABLE = True
+except ImportError:
+    PDF2IMAGE_AVAILABLE = False
 import requests
 from dotenv import load_dotenv
 from .models import ExamSubject, QuestionPaper, ExamAnalysis
@@ -286,16 +290,20 @@ def extract_text_from_pdf(pdf_path):
     try:
         # Fallback to OCR
         print("Attempting OCR extraction...")
-        images = pdf2image.convert_from_path(pdf_path, dpi=200)
-        text = ""
-        for i, image in enumerate(images):
-            try:
-                page_text = pytesseract.image_to_string(image)
-                text += page_text + "\n"
-                print(f"OCR processed page {i+1}/{len(images)}")
-            except Exception as e:
-                print(f"OCR failed on page {i+1}: {e}")
-                continue
+        if PDF2IMAGE_AVAILABLE:
+            images = pdf2image.convert_from_path(pdf_path, dpi=200)
+            text = ""
+            for i, image in enumerate(images):
+                try:
+                    page_text = pytesseract.image_to_string(image)
+                    text += page_text + "\n"
+                    print(f"OCR processed page {i+1}/{len(images)}")
+                except Exception as e:
+                    print(f"OCR failed on page {i+1}: {e}")
+                    continue
+        else:
+            print("pdf2image not available - skipping OCR")
+            text = ""
         
         if text.strip():
             print(f"Successfully extracted {len(text)} characters using OCR")
