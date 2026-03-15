@@ -121,52 +121,59 @@ def smart_notes(request):
                     
                     # Try OCR as fallback
                     try:
-                        from pdf2image import convert_from_bytes
-                        import pytesseract
-                        
-                        # Reset file pointer to beginning
-                        pdf_file.seek(0)
-                        
-                        # Set Poppler path for Windows
-                        import os
-                        if os.name == 'nt':  # Windows
-                            poppler_path = r"C:\poppler\poppler-23.07.0\Library\bin"
-                            if os.path.exists(poppler_path):
-                                os.environ['PATH'] = poppler_path + ';' + os.environ.get('PATH', '')
-                                print(f"✅ Poppler path set: {poppler_path}")
-                            else:
-                                print(f"⚠️ Poppler not found at {poppler_path}")
-                            
-                            # Set Tesseract path for Windows
-                            tesseract_path = r"C:\Program Files\Tesseract-OCR"
-                            if os.path.exists(tesseract_path):
-                                os.environ['PATH'] = tesseract_path + ';' + os.environ.get('PATH', '')
-                                print(f"✅ Tesseract path set: {tesseract_path}")
-                            else:
-                                print(f"⚠️ Tesseract not found at {tesseract_path}")
-                        
-                        # Convert PDF to images
-                        images = convert_from_bytes(pdf_file.read())
-                        print(f"Converted PDF to {len(images)} images for OCR")
-                        
-                        ocr_text = ""
-                        for i, image in enumerate(images):
-                            try:
-                                text = pytesseract.image_to_string(image)
-                                print(f"OCR Page {i+1}: Extracted {len(text)} characters")
-                                if text and text.strip():
-                                    ocr_text += text + "\n"
-                            except Exception as ocr_error:
-                                print(f"OCR error on page {i+1}: {str(ocr_error)}")
-                                continue
-                        
-                        if ocr_text.strip():
-                            final_text = ocr_text
+                        try:
+                            from pdf2image import convert_from_bytes
+                            PDF2IMAGE_AVAILABLE = True
+                        except ImportError:
+                            print("❌ pdf2image not available - skipping OCR")
                             pdf_processed = True
-                            print("✅ OCR processing successful")
+                            final_text = ""
                         else:
-                            print("❌ OCR could not extract any text")
+                            import pytesseract
                             
+                            # Reset file pointer to beginning
+                            pdf_file.seek(0)
+                            
+                            # Set Poppler path for Windows
+                            import os
+                            if os.name == 'nt':  # Windows
+                                poppler_path = r"C:\poppler\poppler-23.07.0\Library\bin"
+                                if os.path.exists(poppler_path):
+                                    os.environ['PATH'] = poppler_path + ';' + os.environ.get('PATH', '')
+                                    print(f"✅ Poppler path set: {poppler_path}")
+                                else:
+                                    print(f"⚠️ Poppler not found at {poppler_path}")
+                                
+                                # Set Tesseract path for Windows
+                                tesseract_path = r"C:\Program Files\Tesseract-OCR"
+                                if os.path.exists(tesseract_path):
+                                    os.environ['PATH'] = tesseract_path + ';' + os.environ.get('PATH', '')
+                                    print(f"✅ Tesseract path set: {tesseract_path}")
+                                else:
+                                    print(f"⚠️ Tesseract not found at {tesseract_path}")
+                            
+                            # Convert PDF to images
+                            images = convert_from_bytes(pdf_file.read())
+                            print(f"Converted PDF to {len(images)} images for OCR")
+                            
+                            ocr_text = ""
+                            for i, image in enumerate(images):
+                                try:
+                                    text = pytesseract.image_to_string(image)
+                                    print(f"OCR Page {i+1}: Extracted {len(text)} characters")
+                                    if text and text.strip():
+                                        ocr_text += text + "\n"
+                                except Exception as ocr_error:
+                                    print(f"OCR error on page {i+1}: {str(ocr_error)}")
+                                    continue
+                            
+                            if ocr_text.strip():
+                                final_text = ocr_text
+                                pdf_processed = True
+                                print("✅ OCR processing successful")
+                            else:
+                                print("❌ OCR could not extract any text")
+                                
                     except ImportError:
                         print("❌ OCR libraries not installed. Install with: pip install pytesseract pdf2image")
                     except Exception as ocr_error:
