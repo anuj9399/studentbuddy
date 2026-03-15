@@ -229,8 +229,74 @@
         }
         
         @media (max-width: 768px) {
+            /* Hide sidebar on mobile */
+            .sidebar {
+                display: none !important;
+            }
+            
+            /* Full width main content */
+            .main-content {
+                width: 100% !important;
+                padding: 16px !important;
+                height: auto !important;
+            }
+            
+            /* Feature cards 2 column on mobile */
             .feature-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 12px !important;
+            }
+            
+            /* Smaller cards on mobile */
+            .feature-card {
+                padding: 16px 12px !important;
+            }
+            
+            .feature-icon-wrap {
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 18px !important;
+                margin-bottom: 10px !important;
+            }
+            
+            .feature-title {
+                font-size: 13px !important;
+            }
+            
+            .feature-desc {
+                font-size: 11px !important;
+                display: none !important;
+            }
+            
+            .feature-badge {
+                font-size: 9px !important;
+                padding: 3px 8px !important;
+            }
+
+            /* Welcome card */
+            .card {
+                padding: 20px !important;
+                margin-bottom: 16px !important;
+            }
+            
+            /* Stats row */
+            .grid {
+                gap: 8px !important;
+            }
+            
+            /* Layout wrapper */
+            .layout-wrapper {
+                flex-direction: column !important;
+            }
+            
+            /* Welcome stats */
+            .flex.gap-2 {
+                gap: 8px !important;
+            }
+            
+            .text-white.text-sm {
+                font-size: 10px !important;
+                padding: 3px 8px !important;
             }
         }
     </style>

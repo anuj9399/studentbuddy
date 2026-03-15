@@ -542,6 +542,61 @@
         .border-slate-700 {
             border-color: #eee8ff !important;
         }
+
+        /* Mobile Bottom Navigation */
+        .mobile-bottom-nav {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-bottom-nav {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                border-top: 1px solid #eee8ff;
+                padding: 8px 0 12px;
+                z-index: 1000;
+                box-shadow: 0 -4px 20px rgba(109,40,217,0.08);
+            }
+            
+            .mobile-nav-item {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+                text-decoration: none;
+                padding: 4px 0;
+            }
+            
+            .mobile-nav-icon {
+                font-size: 20px;
+                line-height: 1;
+            }
+            
+            .mobile-nav-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: #9491b4;
+                font-family: Nunito;
+            }
+            
+            .mobile-nav-item.active .mobile-nav-label {
+                color: #6d28d9;
+            }
+            
+            .mobile-nav-item.active .mobile-nav-icon {
+                filter: none;
+            }
+            
+            /* Add padding to main content so bottom nav doesn't cover it */
+            .main-content {
+                padding-bottom: 80px !important;
+            }
+        }
     </style>
 </head>
 
@@ -614,4 +669,24 @@
                 {% endblock %}
             </main>
         </div>
+
+        <!-- Mobile Bottom Navigation -->
+        <nav class="mobile-bottom-nav">
+            <a href="/" class="mobile-nav-item {% if request.path == '/' %}active{% endif %}">
+                <span class="mobile-nav-icon">🏠</span>
+                <span class="mobile-nav-label">Home</span>
+            </a>
+            <a href="/profile/" class="mobile-nav-item {% if request.path == '/profile/' %}active{% endif %}">
+                <span class="mobile-nav-icon">👤</span>
+                <span class="mobile-nav-label">Profile</span>
+            </a>
+            <a href="/about/" class="mobile-nav-item {% if request.path == '/about/' %}active{% endif %}">
+                <span class="mobile-nav-icon">ℹ️</span>
+                <span class="mobile-nav-label">About</span>
+            </a>
+            <a href="/accounts/logout/" class="mobile-nav-item">
+                <span class="mobile-nav-icon">🚪</span>
+                <span class="mobile-nav-label">Logout</span>
+            </a>
+        </nav>
     </body>
