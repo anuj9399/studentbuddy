@@ -7,30 +7,30 @@ from django.core.mail import send_mail
 
 def signup_view(request):
     if request.method == "POST":
-        name = request.POST.get("name", "").strip()
-        username = request.POST.get("username")
-        email = request.POST.get("email")
-        password = request.POST.get("password")
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        password = request.POST.get('password', '').strip()
 
-        if not name or not username or not email or not password:
-            messages.error(request, "All fields are required")
-            return redirect("/signup/")
+        if not all([username, email, first_name, last_name, password]):
+            return render(request, 'signup.html', {
+                'error': 'All fields are required'
+            })
 
         if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists")
-            return redirect("/signup/")
-
-        # 👇 take only first name
-        first_name = name.split()[0]
+            return render(request, 'signup.html', {
+                'error': 'Username already exists'
+            })
 
         User.objects.create_user(
             username=username,
             email=email,
             password=password,
-            first_name=first_name
+            first_name=first_name,
+            last_name=last_name
         )
 
-        messages.success(request, "Account created! Please login.")
         return redirect("/login/")
 
     return render(request, "signup.html")

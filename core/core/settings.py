@@ -189,6 +189,7 @@ if not DEBUG:
 
 # CSRF Trusted Origins for Render
 CSRF_TRUSTED_ORIGINS = [
+    'https://studentbuddy-v5ah.onrender.com',
     'https://*.onrender.com',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
