@@ -25,7 +25,9 @@ def chat(request):
 
         headers = {
             "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+            "X-Title": "StudentBuddy",
         }
 
         data = {
@@ -257,7 +259,9 @@ Summarize this into exam-ready study notes:
 
                 headers = {
                     "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+                    "X-Title": "StudentBuddy",
                 }
 
                 data = {
@@ -538,6 +542,8 @@ Return only valid JSON."""
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+                "X-Title": "StudentBuddy",
             },
             json={
                 "model": "openai/gpt-4o-mini",
@@ -730,13 +736,14 @@ def career(request):
     import json
     import requests
     import os
+    import traceback
     
     careers = None
     selected_stream = None
     error_message = None
     
-    if request.method == "POST":
-        selected_stream = request.POST.get("stream", "").strip()
+    if request.method == 'POST':
+        selected_stream = request.POST.get('stream', '').strip()
         
         if selected_stream:
             try:
@@ -754,7 +761,6 @@ Return ONLY valid JSON in this exact format, no markdown, no extra text:
       "match_percentage": 95,
       "avg_salary": "₹X LPA - ₹Y LPA",
       "growth": "High/Medium/Low",
-      "education": "Required degree",
       "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"],
       "job_outlook": "2-3 sentences about job market",
       "industries": ["Industry 1", "Industry 2", "Industry 3", "Industry 4"],
@@ -779,7 +785,9 @@ Make career_steps a realistic 6-step journey from education to senior level.
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers={
                         "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY', 'sk-or-v1-your-key-here')}",
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+                        "X-Title": "StudentBuddy",
                     },
                     json={
                         "model": "anthropic/claude-3-haiku",
@@ -789,6 +797,9 @@ Make career_steps a realistic 6-step journey from education to senior level.
                     },
                     timeout=30
                 )
+                
+                print(f"OpenRouter Status: {response.status_code}")
+                print(f"OpenRouter Response: {response.text[:300]}")
                 
                 if response.status_code == 200:
                     response_data = response.json()
@@ -800,17 +811,24 @@ Make career_steps a realistic 6-step journey from education to senior level.
                     careers = data.get('careers', [])
                     
                 else:
+                    print(f"OpenRouter Error Response: {response.status_code} - {response.text}")
                     error_message = "AI service temporarily unavailable. Please try again."
                     
+            except requests.exceptions.Timeout:
+                print("OpenRouter Timeout Error")
+                error_message = "AI service is taking too long. Please try again."
+            except requests.exceptions.RequestException as e:
+                print(f"OpenRouter Request Error: {str(e)}")
+                traceback.print_exc()
+                error_message = "AI service temporarily unavailable. Please try again."
             except json.JSONDecodeError as e:
-                error_message = "Error parsing AI response. Please try again."
-                print(f"JSON Error: {e}")
-            except requests.RequestException as e:
-                error_message = "Network error. Please check your connection and try again."
-                print(f"Request Error: {e}")
+                print(f"JSON Decode Error: {str(e)}")
+                print(f"Raw Response: {response.text[:500]}")
+                error_message = "AI service returned invalid data. Please try again."
             except Exception as e:
+                print(f"Unexpected Error: {str(e)}")
+                traceback.print_exc()
                 error_message = "An unexpected error occurred. Please try again."
-                print(f"Unexpected Error: {e}")
     
     context = {
         'careers': careers,

@@ -346,6 +346,8 @@ Papers content: {content[:4000]}"""  # Limit content to avoid token limits
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+                "X-Title": "StudentBuddy",
             },
             json={
                 "model": "openai/gpt-4o-mini",
@@ -353,7 +355,7 @@ Papers content: {content[:4000]}"""  # Limit content to avoid token limits
                 "max_tokens": 3000,
                 "temperature": 0.3,
             },
-            timeout=60
+            timeout=30
         )
         
         print(f"API Response Status: {response.status_code}")

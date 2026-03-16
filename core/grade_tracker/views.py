@@ -56,11 +56,14 @@ Return only valid JSON."""
                     headers={
                         "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                         "Content-Type": "application/json",
+                        "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+                        "X-Title": "StudentBuddy",
                     },
                     json={
                         "model": "openai/gpt-4o-mini",
                         "messages": [{"role": "user", "content": ai_prompt}]
-                    }
+                    },
+                    timeout=30
                 )
                 
                 if response.status_code == 200:
@@ -344,11 +347,14 @@ Return only valid JSON."""
             headers={
                 "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
+                "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+                "X-Title": "StudentBuddy",
             },
             json={
                 "model": "openai/gpt-4o-mini",
                 "messages": [{"role": "user", "content": ai_prompt}]
-            }
+            },
+            timeout=30
         )
         
         if response.status_code == 200:
@@ -406,11 +412,14 @@ Return only valid JSON."""
                 headers={
                     "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                     "Content-Type": "application/json",
+                    "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+                    "X-Title": "StudentBuddy",
                 },
                 json={
                     "model": "openai/gpt-4o-mini",
                     "messages": [{"role": "user", "content": ai_prompt}]
-                }
+                },
+                timeout=30
             )
             
             if response.status_code == 200:

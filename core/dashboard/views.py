@@ -115,7 +115,9 @@ Days left: {days_left}
 
         headers = {
             "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+            "X-Title": "StudentBuddy",
         }
 
         data = {
@@ -123,7 +125,7 @@ Days left: {days_left}
             "messages": [{"role": "user", "content": prompt}]
         }
 
-        response = requests.post(url, headers=headers, json=data)
+        response = requests.post(url, headers=headers, json=data, timeout=30)
         result = response.json()
 
         raw_plan = result["choices"][0]["message"]["content"]

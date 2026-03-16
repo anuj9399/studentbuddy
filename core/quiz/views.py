@@ -150,6 +150,8 @@ Return ONLY the JSON array, no markdown, no extra text."""
                 headers={
                     'Authorization': f'Bearer {settings.OPENROUTER_API_KEY}',
                     'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://studentbuddy-v5ah.onrender.com',
+                    'X-Title': 'StudentBuddy',
                 },
                 json={
                     'model': 'openai/gpt-4o-mini',
