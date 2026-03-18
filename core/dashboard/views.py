@@ -2,6 +2,10 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from accounts.models import StudentProfile
 from django.conf import settings
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from ai.views import call_groq
 
 
 
@@ -111,28 +115,14 @@ Subject: {subject}
 Days left: {days_left}
 """
 
-        url = "https://openrouter.ai/api/v1/chat/completions"
-
-        headers = {
-            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-            "X-Title": "StudentBuddy",
-        }
-
-        data = {
-            "model": "openai/gpt-4o-mini",
-            "messages": [{"role": "user", "content": prompt}]
-        }
-
-        response = requests.post(url, headers=headers, json=data, timeout=30)
-        result = response.json()
-
-        raw_plan = result["choices"][0]["message"]["content"]
-
-        # split and keep only 6 lines
-        lines = [line.strip() for line in raw_plan.split("\n") if line.strip()]
-        plan = lines[:6]
+        content, error = call_groq(prompt, max_tokens=200)
+        
+        if error:
+            plan = ["Failed to generate study plan"]
+        else:
+            # split and keep only 6 lines
+            lines = [line.strip() for line in content.split("\n") if line.strip()]
+            plan = lines[:6]
 
     return render(request, "planner.html", {"plan": plan})
 

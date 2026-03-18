@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.db.models import Avg, Max, Count
 from .models import Quiz, QuizQuestion
+from ai.views import call_groq
 
 SUBJECTS = [
     'Computer Science',
@@ -145,24 +146,14 @@ Return exactly {total_questions} questions.
 Return ONLY the JSON array, no markdown, no extra text."""
 
         try:
-            response = requests.post(
-                'https://openrouter.ai/api/v1/chat/completions',
-                headers={
-                    'Authorization': f'Bearer {settings.OPENROUTER_API_KEY}',
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': 'https://studentbuddy-v5ah.onrender.com',
-                    'X-Title': 'StudentBuddy',
-                },
-                json={
-                    'model': 'openai/gpt-4o-mini',
-                    'messages': [{'role': 'user', 'content': prompt}],
-                    'max_tokens': 3000,
-                },
-                timeout=30
-            )
-
-            data = response.json()
-            content = data['choices'][0]['message']['content'].strip()
+            content, error = call_groq(prompt, max_tokens=2000)
+            if error:
+                quiz.status = 'failed'
+                quiz.save()
+                return render(request, 'quiz/create.html', {
+                    'error': f'Quiz generation failed: {error}',
+                    'subjects': SUBJECTS,
+                })
 
             # Clean JSON
             content = content.replace('```json', '').replace('```', '').strip()

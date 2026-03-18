@@ -6,6 +6,10 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 import json
 import requests
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from ai.views import call_groq
 
 from .models import AcademicProfile, Semester
 
@@ -50,49 +54,35 @@ Return only valid JSON."""
             
             # Call AI API
             try:
-                from django.conf import settings
-                response = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-                        "X-Title": "StudentBuddy",
-                    },
-                    json={
-                        "model": "openai/gpt-4o-mini",
-                        "messages": [{"role": "user", "content": ai_prompt}]
-                    },
-                    timeout=30
-                )
+                content, error = call_groq(ai_prompt, max_tokens=1000)
                 
-                if response.status_code == 200:
-                    ai_data = response.json()
-                    ai_response = ai_data['choices'][0]['message']['content']
-                    
-                    # Try to parse JSON response
-                    try:
-                        ai_parsed = json.loads(ai_response)
-                        print(f"AI response parsed successfully: {ai_parsed}")
-                    except json.JSONDecodeError as e:
-                        print(f"AI JSON parsing error: {e}")
-                        print(f"Raw AI response: {ai_response}")
-                        # Use fallback values for SPPU Engineering 10.0 scale
-                        ai_parsed = {
-                            'minimum_cgpa': 5.0,
-                            'good_cgpa': 7.0,
-                            'excellent_cgpa': 9.0,
-                            'placement_cutoff': 6.5,
-                            'university_info': f"{profile.university_name} is one of the premier engineering universities in Maharashtra, known for its rigorous curriculum and industry connections.",
-                            'pattern_info': f"The {profile.pattern_year} pattern follows the revised credit system and outcome-based evaluation framework.",
-                            'benchmark_message': f"At {profile.university_short}, scoring above 7.5 CGPA puts you in the top 30% of students and qualifies you for most campus placements.",
-                            'improvement_tips': [
-                                "Focus on core subjects like Mathematics, Programming, and Data Structures as they have higher weightage",
-                                "Maintain consistent attendance and regular study schedules to build strong fundamentals",
-                                "Practice previous year question papers and understand exam patterns",
-                                "Join technical clubs and participate in hackathons to build practical skills"
-                            ]
-                        }
+                if error:
+                    messages.error(request, f'AI analysis failed: {error}')
+                    return redirect('grade_tracker:grade_setup')
+                
+                # Try to parse JSON response
+                try:
+                    ai_parsed = json.loads(content)
+                    print(f"AI response parsed successfully: {ai_parsed}")
+                except json.JSONDecodeError as e:
+                    print(f"AI JSON parsing error: {e}")
+                    print(f"Raw AI response: {content}")
+                    # Use fallback values for SPPU Engineering 10.0 scale
+                    ai_parsed = {
+                        'minimum_cgpa': 5.0,
+                        'good_cgpa': 7.0,
+                        'excellent_cgpa': 9.0,
+                        'placement_cutoff': 6.5,
+                        'university_info': f"{profile.university_name} is one of the premier engineering universities in Maharashtra, known for its rigorous curriculum and industry connections.",
+                        'pattern_info': f"The {profile.pattern_year} pattern follows the revised credit system and outcome-based evaluation framework.",
+                        'benchmark_message': f"At {profile.university_short}, scoring above 7.5 CGPA puts you in the top 30% of students and qualifies you for most campus placements.",
+                        'improvement_tips': [
+                            "Focus on core subjects like Mathematics, Programming, and Data Structures as they have higher weightage",
+                            "Maintain consistent attendance and regular study schedules to build strong fundamentals",
+                            "Practice previous year question papers and understand exam patterns",
+                            "Join technical clubs and participate in hackathons to build practical skills"
+                        ]
+                    }
                     
                     # Save individual fields
                     profile.minimum_cgpa = ai_parsed.get('minimum_cgpa', 5.0)
@@ -341,31 +331,17 @@ Analyze their performance and return JSON:
 Return only valid JSON."""
     
     try:
-        from django.conf import settings
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-                "X-Title": "StudentBuddy",
-            },
-            json={
-                "model": "openai/gpt-4o-mini",
-                "messages": [{"role": "user", "content": ai_prompt}]
-            },
-            timeout=30
-        )
+        content, error = call_groq(ai_prompt, max_tokens=1000)
         
-        if response.status_code == 200:
-            ai_data = response.json()
-            advice = ai_data['choices'][0]['message']['content']
-            
-            # Cache the advice
-            profile.ai_improvement_advice = advice
-            profile.save()
-            
-            return json.loads(advice)
+        if error:
+            print(f"AI advice error: {error}")
+            return {}
+        
+        # Cache the advice
+        profile.ai_improvement_advice = content
+        profile.save()
+        
+        return json.loads(content)
             
     except Exception as e:
         print(f"AI advice error: {e}")
@@ -406,49 +382,35 @@ Return only valid JSON."""
         
         # Call AI API
         try:
-            from django.conf import settings
-            response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-                    "X-Title": "StudentBuddy",
-                },
-                json={
-                    "model": "openai/gpt-4o-mini",
-                    "messages": [{"role": "user", "content": ai_prompt}]
-                },
-                timeout=30
-            )
+            content, error = call_groq(ai_prompt, max_tokens=1000)
             
-            if response.status_code == 200:
-                ai_data = response.json()
-                ai_response = ai_data['choices'][0]['message']['content']
-                
-                # Try to parse JSON response
-                try:
-                    ai_parsed = json.loads(ai_response)
-                    print(f"AI re-analysis response parsed successfully: {ai_parsed}")
-                except json.JSONDecodeError as e:
-                    print(f"AI re-analysis JSON parsing error: {e}")
-                    print(f"Raw AI re-analysis response: {ai_response}")
-                    # Use fallback values
-                    ai_parsed = {
-                        'performance_summary': "Your academic performance shows room for improvement.",
-                        'main_problem': "Inconsistent grades across semesters",
-                        'specific_advice': [
-                            "Focus on maintaining consistent performance across all subjects",
-                            "Develop better study habits and time management",
-                            "Seek help from professors for difficult subjects",
-                            "Practice regularly with mock tests"
-                        ],
-                        'next_semester_target': 7.5,
-                        'motivation_message': "You have the potential to excel with dedicated effort!"
-                    }
+            if error:
+                messages.error(request, f'AI re-analysis failed: {error}')
+                return redirect('grade_tracker:grade_dashboard')
+            
+            # Try to parse JSON response
+            try:
+                ai_parsed = json.loads(content)
+                print(f"AI re-analysis response parsed successfully: {ai_parsed}")
+            except json.JSONDecodeError as e:
+                print(f"AI re-analysis JSON parsing error: {e}")
+                print(f"Raw AI re-analysis response: {content}")
+                # Use fallback values
+                ai_parsed = {
+                    'performance_summary': "Your academic performance shows room for improvement.",
+                    'main_problem': "Inconsistent grades across semesters",
+                    'specific_advice': [
+                        "Focus on maintaining consistent performance across all subjects",
+                        "Develop better study habits and time management",
+                        "Seek help from professors for difficult subjects",
+                        "Practice regularly with mock tests"
+                    ],
+                    'next_semester_target': 7.5,
+                    'motivation_message': "You have the potential to excel with dedicated effort!"
+                }
                 
                 # Update improvement advice
-                profile.ai_improvement_advice = ai_response
+                profile.ai_improvement_advice = content
                 profile.save()
                 
                 return JsonResponse({

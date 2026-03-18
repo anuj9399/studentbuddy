@@ -197,6 +197,101 @@
   font-weight: 600;
   margin-top: 4px;
 }
+
+/* New Career Card Elements */
+.roles-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.role-item {
+  background: #f8f7ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6d28d9;
+}
+
+.cert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.cert-item {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d97706;
+}
+
+.edu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.edu-item {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #059669;
+}
+
+.pros-cons-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee8ff;
+}
+.pros-box, .cons-box {
+  padding: 16px;
+  border-radius: 12px;
+}
+.pros-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.cons-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+.pro-item {
+  color: #166534;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.con-item {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.future-outlook {
+  margin-top: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8f7ff, #ede9fe);
+  border: 1px solid #ddd6fe;
+  border-radius: 12px;
+}
+
+/* Color variations for stat values */
+.stat-value.green { color: #16a34a; }
+.stat-value.orange { color: #ea580c; }
+.stat-value.blue { color: #2563eb; }
 </style>
 
 <script>
@@ -277,85 +372,160 @@ function setStream(stream) {
             <!-- Career Header -->
             <div class="career-header">
                 <div>
-                    <h2 class="career-title">{{ career.title }}</h2>
-                    <p class="career-field">{{ career.field }}</p>
-                </div>
-                <div class="match-badge">
-                    {{ career.match_percentage }}% Match
+                    <h2 class="career-title">{{ career.icon|default:"🎯" }} {{ career.title }}</h2>
+                    <p class="career-desc">{{ career.description }}</p>
                 </div>
             </div>
 
-            <!-- Career Description -->
-            <p class="career-desc">
-                {{ career.description }}
-            </p>
-
-            <!-- Career Details Grid -->
+            <!-- Salary Section -->
             <div class="career-stats">
                 <div class="stat-box">
-                    <div class="stat-label">Avg Salary</div>
-                    <div class="stat-value">{{ career.avg_salary }}</div>
+                    <div class="stat-label">Starting</div>
+                    <div class="stat-value">{{ career.starting_salary|default:"N/A" }}</div>
                 </div>
+                <div class="stat-box">
+                    <div class="stat-label">Average</div>
+                    <div class="stat-value">{{ career.avg_salary|default:"N/A" }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Senior</div>
+                    <div class="stat-value">{{ career.senior_salary|default:"N/A" }}</div>
+                </div>
+            </div>
+
+            <!-- Quick Stats Row -->
+            <div class="career-stats">
                 <div class="stat-box">
                     <div class="stat-label">Growth</div>
-                    <div class="stat-value green">{{ career.growth }}</div>
+                    <div class="stat-value green">{{ career.growth|default:"N/A" }}</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Education</div>
-                    <div class="stat-value orange">{{ career.education }}</div>
+                    <div class="stat-label">Demand</div>
+                    <div class="stat-value orange">{{ career.demand|default:"N/A" }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Work Type</div>
+                    <div class="stat-value blue">{{ career.work_type|default:"N/A" }}</div>
                 </div>
             </div>
 
-            <!-- Required Skills -->
+            <!-- Skills Section -->
             {% if career.skills %}
             <div class="skills-section">
-                <div class="section-label">Required Skills</div>
+                <div class="section-label">Technical Skills</div>
                 <div class="skills-list">
                     {% for skill in career.skills %}
-                    <span class="skill-tag">{{ skill }}</span>
+                    <span class="skill-tag" style="background:#7c3aed; color:white;">{{ skill }}</span>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
 
-            <!-- Job Outlook -->
-            {% if career.job_outlook %}
-            <div class="job-outlook">
-                <div class="section-label">Job Outlook</div>
-                <p style="color:#4b5563; font-size:14px; line-height:1.5;">{{ career.job_outlook }}</p>
+            {% if career.soft_skills %}
+            <div class="skills-section">
+                <div class="section-label">Soft Skills</div>
+                <div class="skills-list">
+                    {% for skill in career.soft_skills %}
+                    <span class="skill-tag" style="background:#3b82f6; color:white;">{{ skill }}</span>
+                    {% endfor %}
+                </div>
             </div>
             {% endif %}
 
-            <!-- Industries -->
-            {% if career.industries %}
+            <!-- Companies Section -->
+            {% if career.companies %}
             <div class="career-industries">
-                <div class="section-label">Industries</div>
+                <div class="section-label">Top Companies</div>
                 <div class="industries-list">
-                    {% for industry in career.industries %}
-                    <span class="industry-tag">{{ industry }}</span>
+                    {% for company in career.companies %}
+                    <span class="industry-tag">{{ company }}</span>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
 
-            <!-- Career Journey -->
-            {% if career.career_steps %}
+            <!-- Top Roles Section -->
+            {% if career.top_roles %}
             <div class="career-journey">
-                <div class="section-label">Career Journey</div>
+                <div class="section-label">Top Roles</div>
+                <div class="roles-list">
+                    {% for role in career.top_roles %}
+                    <div class="role-item">• {{ role }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Certifications Section -->
+            {% if career.certifications %}
+            <div class="career-journey">
+                <div class="section-label">Recommended Certifications</div>
+                <div class="cert-list">
+                    {% for cert in career.certifications %}
+                    <div class="cert-item">🏆 {{ cert }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Education Section -->
+            {% if career.education %}
+            <div class="career-journey">
+                <div class="section-label">Education Path</div>
+                <div class="edu-list">
+                    {% for edu in career.education %}
+                    <div class="edu-item">🎓 {{ edu }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Career Steps Section -->
+            {% if career.steps %}
+            <div class="career-journey">
+                <div class="section-label">Career Steps</div>
                 <div class="steps-list">
-                    {% for step in career.career_steps %}
+                    {% for step in career.steps %}
                     <div class="journey-step">
-                        <div class="step-number">{{ step.step }}</div>
+                        <div class="step-number">{{ forloop.counter }}</div>
                         <div class="step-content">
-                            <div class="step-title">{{ step.title }}</div>
-                            <div class="step-desc">{{ step.description }}</div>
-                            <div class="step-duration">⏱ {{ step.duration }}</div>
+                            <div class="step-title">{{ step }}</div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
+
+            <!-- Pros and Cons Section -->
+            <div class="pros-cons-section">
+                {% if career.pros %}
+                <div class="pros-box">
+                    <div class="section-label">✅ Pros</div>
+                    {% for pro in career.pros %}
+                    <div class="pro-item">✓ {{ pro }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if career.cons %}
+                <div class="cons-box">
+                    <div class="section-label">❌ Cons</div>
+                    {% for con in career.cons %}
+                    <div class="con-item">✗ {{ con }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Future Outlook Section -->
+            {% if career.future %}
+            <div class="future-outlook">
+                <div class="section-label">🔮 Future Outlook</div>
+                <p style="color:#4b5563; font-size:14px; line-height:1.5;">{{ career.future }}</p>
+            </div>
+            {% endif %}
+
         </div>
         {% endfor %}
     {% endif %}

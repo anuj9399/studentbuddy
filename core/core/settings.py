@@ -21,9 +21,11 @@ load_dotenv()
 # Debug: Check if API key is loaded
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 
 print(f"=== OPENROUTER KEY LOADED: {bool(OPENROUTER_API_KEY)} ===")
 print(f"=== GEMINI KEY LOADED: {bool(GEMINI_API_KEY)} ===")
+print(f"=== GROQ KEY LOADED: {bool(GROQ_API_KEY)} ===")
 print(f"=== API KEY PREFIX: {OPENROUTER_API_KEY[:20] if OPENROUTER_API_KEY else 'NONE'} ===")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

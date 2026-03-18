@@ -2,49 +2,55 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib import messages
-import google.generativeai as genai
+import requests
 from django.conf import settings
 
-def call_ai(prompt, max_tokens=500):
-    """Call Google Gemini AI API"""
+def call_groq(prompt, max_tokens=1000, system_prompt=None):
     try:
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        api_key = settings.GROQ_API_KEY
         
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=max_tokens,
-                temperature=0.7,
-            )
+        if not api_key:
+            return None, "Groq API key not configured"
+        
+        messages = []
+        if system_prompt:
+            messages.append({
+                'role': 'system',
+                'content': system_prompt
+            })
+        messages.append({
+            'role': 'user',
+            'content': prompt
+        })
+        
+        response = requests.post(
+            'https://api.groq.com/openai/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': 'llama-3.1-8b-instant',
+                'messages': messages,
+                'max_tokens': max_tokens,
+                'temperature': 0.7,
+            },
+            timeout=30
         )
-        return response.text, None
-    except Exception as e:
-        return None, str(e)
-
-def call_ai_chat(messages, max_tokens=500):
-    """Call Google Gemini AI API for chat with history"""
-    try:
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Convert messages to Gemini format
-        full_prompt = ""
-        for msg in messages:
-            if msg['role'] == 'user':
-                full_prompt += f"User: {msg['content']}\n"
-            elif msg['role'] == 'assistant':
-                full_prompt += f"Assistant: {msg['content']}\n"
+        print(f"Groq Status: {response.status_code}")
         
-        response = model.generate_content(
-            full_prompt,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=max_tokens,
-                temperature=0.7,
-            )
-        )
-        return response.text, None
+        if response.status_code != 200:
+            return None, f"API Error {response.status_code}: {response.text[:200]}"
+        
+        data = response.json()
+        content = data['choices'][0]['message']['content'].strip()
+        return content, None
+        
+    except requests.exceptions.Timeout:
+        return None, "Request timed out. Please try again."
     except Exception as e:
+        print(f"Groq Error: {str(e)}")
         return None, str(e)
 
 from django.shortcuts import render, get_object_or_404
@@ -73,9 +79,11 @@ def chat(request):
         user_message = request.POST.get("message", "")
 
         if user_message:
-            content, error = call_ai_chat([
-                {"role": "user", "content": user_message}
-            ], max_tokens=500)
+            content, error = call_groq(
+                user_message,
+                max_tokens=800,
+                system_prompt="You are StudentBuddy AI, a helpful academic assistant for Indian engineering students. Give clear, concise answers."
+            )
             
             if error:
                 response_text = f"Error: {error}"
@@ -253,6 +261,17 @@ Your PDF is being processed with OCR, but Tesseract OCR engine is missing.
             final_text = notes
             print(f"Notes text length: {len(final_text)} characters")
 
+        # Check if extracted text is too short (likely scanned PDF)
+        extracted_text = final_text.strip()
+        if not extracted_text or len(extracted_text) < 50:
+            print("❌ Text extraction failed or too short - likely scanned PDF")
+            return render(request, 'ai/smart_notes.html', {
+                'error': 'Could not extract text from this PDF. '
+                         'Please upload a text-based PDF, not a scanned image. '
+                         'Try copy-pasting your notes in the text box instead.',
+                'summary': None
+            })
+
         if not final_text.strip():
             print("❌ No text content available for summarization")
             if pdf_file and not pdf_processed:
@@ -273,26 +292,13 @@ Summarize this into exam-ready study notes:
 """
 
             try:
-                url = "https://openrouter.ai/api/v1/chat/completions"
-
-                headers = {
-                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-                    "X-Title": "StudentBuddy",
-                }
-
-                data = {
-                    "model": "openai/gpt-4o-mini",
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-
-                print("🚀 Sending request to AI API...")
-                r = requests.post(url, headers=headers, json=data, timeout=30)
-                print(f"API Response Status: {r.status_code}")
+                content, error = call_groq(prompt, max_tokens=800)
                 
-                if r.status_code == 200:
-                    summary = r.json()["choices"][0]["message"]["content"]
+                if error:
+                    print(f"Groq Error: {error}")
+                    summary = f"AI summarization failed: {error}"
+                else:
+                    summary = content
                     print("✅ AI summarization successful")
                     
                     # Record study activity
@@ -313,13 +319,7 @@ Summarize this into exam-ready study notes:
                         mastery.mastery_level = min(mastery.mastery_level + 5, 100)
                         mastery.study_sessions += 1
                         mastery.save()
-                else:
-                    print(f"❌ API Error: {r.status_code} - {r.text}")
-                    summary = f"API error: {r.text}"
                     
-            except requests.exceptions.Timeout:
-                print("❌ API request timed out")
-                summary = "Request timed out. Please try again."
             except Exception as api_error:
                 print(f"❌ API request failed: {str(api_error)}")
                 summary = f"Failed to generate summary: {str(api_error)}"
@@ -531,10 +531,6 @@ def generate_study_schedule(exam_date, hours_per_day, subjects):
         import json
         from datetime import datetime, timedelta
         
-        api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
-        if not api_key:
-            return None
-        
         # Prepare subjects list
         subjects_list = []
         for subject in subjects:
@@ -555,43 +551,28 @@ Return JSON with this exact structure:
 }
 Return only valid JSON."""
         
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-                "X-Title": "StudentBuddy",
-            },
-            json={
-                "model": "openai/gpt-4o-mini",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 2000,
-                "temperature": 0.3,
-            },
-            timeout=30
-        )
+        content, error = call_groq(prompt, max_tokens=1000)
         
-        if response.status_code == 200:
-            data = response.json()
-            content = data['choices'][0]['message']['content']
+        if error:
+            print(f"Groq Error: {error}")
+            return None
             
-            # Strip markdown and clean response
-            raw = content.strip()
-            if raw.startswith('```'):
-                raw = raw.split('```')[1]
-                if raw.startswith('json'):
-                    raw = raw[4:].strip()
-            raw = raw.replace('```', '').strip()
-            
-            # Try to parse JSON
-            try:
-                return json.loads(raw)
-            except json.JSONDecodeError as e:
-                print(f"AI schedule parsing error: {e}")
-                print(f"Raw AI response: {content}")
-                print(f"Cleaned response: {raw}")
-                return None
+        # Strip markdown and clean response
+        raw = content.strip()
+        if raw.startswith('```'):
+            raw = raw.split('```')[1]
+            if raw.startswith('json'):
+                raw = raw[4:].strip()
+        raw = raw.replace('```', '').strip()
+        
+        # Try to parse JSON
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError as e:
+            print(f"AI schedule parsing error: {e}")
+            print(f"Raw AI response: {content}")
+            print(f"Cleaned response: {raw}")
+            return None
         
     except Exception as e:
         print(f"AI schedule generation error: {e}")
@@ -757,11 +738,9 @@ def career_test(request):
     from django.http import JsonResponse
     
     try:
-        api_key = os.getenv('OPENROUTER_API_KEY')
-        
         # Debug environment variables
         env_vars = {
-            'OPENROUTER_API_KEY': bool(api_key),
+            'GROQ_API_KEY': bool(settings.GROQ_API_KEY),
             'DJANGO_SETTINGS_MODULE': os.getenv('DJANGO_SETTINGS_MODULE'),
             'DEBUG': os.getenv('DEBUG'),
             'all_env_keys': list(os.environ.keys())[:10]  # First 10 env vars
@@ -770,27 +749,12 @@ def career_test(request):
         print(f"DEBUG: Environment check - {env_vars}")
         
         # Simple test request
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-                "X-Title": "StudentBuddy",
-            },
-            json={
-                "model": "anthropic/claude-3-haiku",
-                "messages": [{"role": "user", "content": "Respond with: 'API Test Successful'"}],
-                "max_tokens": 10,
-            },
-            timeout=10
-        )
+        content, error = call_groq("Respond with: 'API Test Successful'", max_tokens=10)
         
         return JsonResponse({
             "status": "success",
-            "api_key_available": bool(api_key),
-            "api_response_status": response.status_code,
-            "api_response": response.text[:100],
+            "api_key_available": bool(settings.GROQ_API_KEY),
+            "api_response": content[:100] if content else str(error),
             "environment": env_vars
         })
         
@@ -798,9 +762,9 @@ def career_test(request):
         return JsonResponse({
             "status": "error",
             "error": str(e),
-            "api_key_available": bool(os.getenv('OPENROUTER_API_KEY')),
+            "api_key_available": bool(settings.GROQ_API_KEY),
             "environment": {
-                'OPENROUTER_API_KEY': bool(os.getenv('OPENROUTER_API_KEY')),
+                'GROQ_API_KEY': bool(settings.GROQ_API_KEY),
                 'DJANGO_SETTINGS_MODULE': os.getenv('DJANGO_SETTINGS_MODULE')
             }
         })
@@ -855,77 +819,79 @@ def career(request):
         # Debug
         print(f"=== CAREER GUIDE DEBUG ===")
         print(f"Stream: {stream}")
-        print(f"Gemini Key exists: {bool(settings.GEMINI_API_KEY)}")
+        print(f"Groq Key exists: {bool(settings.GROQ_API_KEY)}")
         
-        if not settings.GEMINI_API_KEY:
+        if not settings.GROQ_API_KEY:
             return render(request, 'ai/career.html', {
-                'error': 'Gemini API key not configured. Please contact admin.',
+                'error': 'Groq API key not configured. Please contact admin.',
                 'stream': stream
             })
         
-        prompt = f"""You are a career counselor for Indian students.
-A student studying {stream} wants career guidance.
+        prompt = f"""You are an expert career counselor for Indian students.
+A student studying {stream} wants detailed career guidance.
 
-Generate exactly 6 career paths for {stream} students in India.
+Generate exactly 6 detailed career paths for {stream} students in India.
 
-Return ONLY a valid JSON array like this:
+Return ONLY a valid JSON array with NO markdown, NO extra text:
 [
   {{
     "title": "Software Engineer",
-    "description": "Build software applications and systems",
-    "avg_salary": "8-25 LPA",
+    "icon": "💻",
+    "description": "Design, develop and maintain software applications and systems for companies across all industries",
+    "avg_salary": "6-40 LPA",
+    "starting_salary": "4-8 LPA",
+    "senior_salary": "25-60 LPA",
     "growth": "Excellent",
-    "skills": ["Python", "Java", "Problem Solving"],
-    "companies": ["TCS", "Infosys", "Google", "Microsoft"],
-    "steps": ["Complete degree", "Learn programming", "Build projects", "Apply for jobs"]
+    "demand": "Very High",
+    "work_type": "Office/Remote",
+    "skills": ["Python", "Java", "Data Structures", "Problem Solving", "Git", "SQL"],
+    "soft_skills": ["Communication", "Teamwork", "Problem Solving"],
+    "companies": ["Google", "Microsoft", "TCS", "Infosys", "Wipro", "Startups"],
+    "top_roles": ["Backend Developer", "Frontend Developer", "Full Stack Developer"],
+    "certifications": ["AWS Certified", "Google Cloud", "Oracle Java"],
+    "education": ["B.Tech/B.E in CS/IT", "MCA", "BCA + MCA"],
+    "steps": [
+      "Complete your degree with good CGPA",
+      "Learn core programming languages",
+      "Build 3-4 strong projects for portfolio",
+      "Contribute to open source",
+      "Clear DSA interviews",
+      "Apply to product and service companies"
+    ],
+    "pros": ["High salary", "Remote work possible", "Global opportunities"],
+    "cons": ["Competitive field", "Continuous learning required"],
+    "future": "AI and cloud will create more opportunities. Demand will grow 25% by 2030."
   }}
 ]
 
-Return ONLY the JSON array. No markdown. No extra text."""
+Generate 6 such detailed careers specifically for {stream} students.
+Make salaries realistic for Indian market in LPA.
+Make companies relevant to India.
+Return ONLY the JSON array, absolutely no other text."""
 
+        content, error = call_groq(prompt, max_tokens=3000)
+        if error:
+            return render(request, 'ai/career.html', {
+                'error': f'AI Error: {error}',
+                'stream': stream
+            })
+
+        # Parse JSON
         try:
-            content, error = call_ai(prompt, max_tokens=2000)
-            
-            if error:
-                print(f"Gemini Error: {error}")
-                return render(request, 'ai/career.html', {
-                    'error': f'AI Error: {error}',
-                    'stream': stream
-                })
-            
-            print(f"Gemini Response: {content[:300]}")
-            
-            # Clean JSON response
-            content = content.strip()
-            
-            # Find JSON array
+            content = content.replace('```json', '').replace('```', '').strip()
             start = content.find('[')
             end = content.rfind(']') + 1
             if start != -1 and end > start:
                 content = content[start:end]
-            
-            try:
-                careers = json.loads(content)
-                print(f"Parsed {len(careers)} careers")
-                
-                return render(request, 'ai/career.html', {
-                    'careers': careers,
-                    'stream': stream,
-                    'error': None
-                })
-                
-            except json.JSONDecodeError as e:
-                print(f"JSON Error: {e}")
-                print(f"Content was: {content}")
-                return render(request, 'ai/career.html', {
-                    'error': 'Failed to parse AI response. Please try again.',
-                    'stream': stream
-                })
-                
-        except Exception as e:
-            print(f"Exception: {str(e)}")
+            careers = json.loads(content)
             return render(request, 'ai/career.html', {
-                'error': f'Error: {str(e)}',
+                'careers': careers,
+                'stream': stream,
+                'error': None
+            })
+        except json.JSONDecodeError as e:
+            return render(request, 'ai/career.html', {
+                'error': 'Failed to parse response. Please try again.',
                 'stream': stream
             })
     

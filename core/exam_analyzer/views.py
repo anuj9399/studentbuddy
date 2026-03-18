@@ -5,7 +5,9 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 import json
+import sys
 import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pypdf
 import pytesseract
 from PIL import Image
@@ -17,6 +19,7 @@ except ImportError:
 import requests
 from dotenv import load_dotenv
 from .models import ExamSubject, QuestionPaper, ExamAnalysis
+from ai.views import call_groq
 
 load_dotenv()
 
@@ -320,11 +323,6 @@ def extract_text_from_pdf(pdf_path):
 def analyze_with_ai(content):
     """Analyze content with AI"""
     try:
-        api_key = os.getenv('OPENROUTER_API_KEY')
-        if not api_key:
-            print("ERROR: OPENROUTER_API_KEY not found in environment variables")
-            return None
-        
         print(f"Starting AI analysis with content length: {len(content)} characters")
         
         prompt = f"""You are an expert exam pattern analyzer. Analyze the following previous year question papers and return a JSON response with this exact structure:
@@ -340,61 +338,37 @@ def analyze_with_ai(content):
 Return only valid JSON, nothing else.
 Papers content: {content[:4000]}"""  # Limit content to avoid token limits
         
-        print("Sending request to OpenRouter API...")
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-                "X-Title": "StudentBuddy",
-            },
-            json={
-                "model": "openai/gpt-4o-mini",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 3000,
-                "temperature": 0.3,
-            },
-            timeout=30
-        )
+        print("Sending request to Groq API...")
         
-        print(f"API Response Status: {response.status_code}")
+        content, error = call_groq(prompt, max_tokens=1000)
         
-        if response.status_code == 200:
-            data = response.json()
-            content = data['choices'][0]['message']['content']
-            print(f"Raw AI response: {content[:200]}...")
-            
-            # Try to parse JSON
-            try:
-                result = json.loads(content)
-                print("✅ Successfully parsed JSON response")
-                return result
-            except json.JSONDecodeError as e:
-                print(f"JSON decode error: {e}")
-                # Extract JSON from response if it's wrapped in code blocks
-                if '```json' in content:
-                    json_str = content.split('```json')[1].split('```')[0].strip()
-                    print("Trying to parse JSON from code blocks...")
-                    try:
-                        result = json.loads(json_str)
-                        print("✅ Successfully parsed JSON from code blocks")
-                        return result
-                    except json.JSONDecodeError as e2:
-                        print(f"JSON from code blocks also failed: {e2}")
-                else:
-                    print("No JSON code blocks found in response")
-                return None
-        else:
-            print(f"API request failed with status {response.status_code}: {response.text}")
+        if error:
+            print(f"Groq Error: {error}")
             return None
-            
-    except requests.exceptions.Timeout:
-        print("ERROR: AI request timed out")
-        return None
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: AI request failed: {e}")
-        return None
+        
+        print(f"Groq Response: {content[:200]}...")
+        
+        # Try to parse JSON
+        try:
+            result = json.loads(content)
+            print("✅ Successfully parsed JSON response")
+            return result
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}")
+            # Extract JSON from response if it's wrapped in code blocks
+            if '```json' in content:
+                json_str = content.split('```json')[1].split('```')[0].strip()
+                print("Trying to parse JSON from code blocks...")
+                try:
+                    result = json.loads(json_str)
+                    print("✅ Successfully parsed JSON from code blocks")
+                    return result
+                except json.JSONDecodeError as e2:
+                    print(f"JSON from code blocks also failed: {e2}")
+            else:
+                print("No JSON code blocks found in response")
+                return None
+                
     except Exception as e:
         print(f"ERROR: Unexpected error in AI analysis: {e}")
         return None
