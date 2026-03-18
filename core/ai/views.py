@@ -1,3 +1,52 @@
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.contrib import messages
+import google.generativeai as genai
+from django.conf import settings
+
+def call_ai(prompt, max_tokens=500):
+    """Call Google Gemini AI API"""
+    try:
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=max_tokens,
+                temperature=0.7,
+            )
+        )
+        return response.text, None
+    except Exception as e:
+        return None, str(e)
+
+def call_ai_chat(messages, max_tokens=500):
+    """Call Google Gemini AI API for chat with history"""
+    try:
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Convert messages to Gemini format
+        full_prompt = ""
+        for msg in messages:
+            if msg['role'] == 'user':
+                full_prompt += f"User: {msg['content']}\n"
+            elif msg['role'] == 'assistant':
+                full_prompt += f"Assistant: {msg['content']}\n"
+        
+        response = model.generate_content(
+            full_prompt,
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=max_tokens,
+                temperature=0.7,
+            )
+        )
+        return response.text, None
+    except Exception as e:
+        return None, str(e)
+
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -23,46 +72,15 @@ def chat(request):
     if request.method == "POST":
         user_message = request.POST.get("message", "")
 
-        headers = {
-            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-            "X-Title": "StudentBuddy",
-        }
-
-        data = {
-            "model": "openai/gpt-4o-mini",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": """
-You are a strict academic tutor inside a student app.
-
-Rules:
-- Only answer questions related to studies, education, exams, engineering, science, or academics.
-- If the question is not study-related, refuse politely.
-- Never answer casual, entertainment, political, personal, or unrelated questions.
-- Keep explanations simple and student-friendly.
-- Focus on learning and clarity.
-
-If a question is unrelated, respond with:
-"I can only help with study-related questions."
-"""
-                },
+        if user_message:
+            content, error = call_ai_chat([
                 {"role": "user", "content": user_message}
-            ]
-        }
-
-        r = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=data
-        )
-
-        if r.status_code == 200:
-            response_text = r.json()["choices"][0]["message"]["content"]
-        else:
-            response_text = f"Error: {r.text}"
+            ], max_tokens=500)
+            
+            if error:
+                response_text = f"Error: {error}"
+            else:
+                response_text = content
 
     return render(request, "ai/chat.html", {
         "response": response_text
@@ -824,7 +842,6 @@ def career_simple_test(request):
 @login_required
 def career(request):
     from django.conf import settings
-    import requests
     import json
     
     if request.method == 'POST':
@@ -835,17 +852,14 @@ def career(request):
                 'error': 'Please enter your academic stream'
             })
         
-        api_key = settings.OPENROUTER_API_KEY
-        
         # Debug
         print(f"=== CAREER GUIDE DEBUG ===")
         print(f"Stream: {stream}")
-        print(f"API Key exists: {bool(api_key)}")
-        print(f"API Key prefix: {api_key[:20] if api_key else 'NONE'}")
+        print(f"Gemini Key exists: {bool(settings.GEMINI_API_KEY)}")
         
-        if not api_key:
+        if not settings.GEMINI_API_KEY:
             return render(request, 'ai/career.html', {
-                'error': 'API key not configured. Please contact admin.',
+                'error': 'Gemini API key not configured. Please contact admin.',
                 'stream': stream
             })
         
@@ -870,41 +884,19 @@ Return ONLY a valid JSON array like this:
 Return ONLY the JSON array. No markdown. No extra text."""
 
         try:
-            response = requests.post(
-                'https://openrouter.ai/api/v1/chat/completions',
-                headers={
-                    'Authorization': f'Bearer {api_key}',
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': 'https://studentbuddy-v5ah.onrender.com',
-                    'X-Title': 'StudentBuddy',
-                },
-                json={
-                    'model': 'openai/gpt-4o-mini',
-                    'messages': [
-                        {'role': 'user', 'content': prompt}
-                    ],
-                    'max_tokens': 2000,
-                    'temperature': 0.7,
-                },
-                timeout=30
-            )
+            content, error = call_ai(prompt, max_tokens=2000)
             
-            print(f"Response status: {response.status_code}")
-            print(f"Response text: {response.text[:500]}")
-            
-            if response.status_code != 200:
+            if error:
+                print(f"Gemini Error: {error}")
                 return render(request, 'ai/career.html', {
-                    'error': f'API Error {response.status_code}: {response.text[:200]}',
+                    'error': f'AI Error: {error}',
                     'stream': stream
                 })
             
-            data = response.json()
-            content = data['choices'][0]['message']['content'].strip()
+            print(f"Gemini Response: {content[:300]}")
             
-            print(f"Content: {content[:300]}")
-            
-            # Clean JSON
-            content = content.replace('```json', '').replace('```', '').strip()
+            # Clean JSON response
+            content = content.strip()
             
             # Find JSON array
             start = content.find('[')
@@ -912,35 +904,31 @@ Return ONLY the JSON array. No markdown. No extra text."""
             if start != -1 and end > start:
                 content = content[start:end]
             
-            careers = json.loads(content)
-            
-            print(f"Parsed {len(careers)} careers")
-            
-            return render(request, 'ai/career.html', {
-                'careers': careers,
-                'stream': stream,
-                'error': None
-            })
-            
-        except json.JSONDecodeError as e:
-            print(f"JSON Error: {e}")
-            print(f"Content was: {content}")
-            return render(request, 'ai/career.html', {
-                'error': 'Failed to parse AI response. Please try again.',
-                'stream': stream
-            })
-        except requests.exceptions.Timeout:
-            return render(request, 'ai/career.html', {
-                'error': 'Request timed out. Please try again.',
-                'stream': stream
-            })
+            try:
+                careers = json.loads(content)
+                print(f"Parsed {len(careers)} careers")
+                
+                return render(request, 'ai/career.html', {
+                    'careers': careers,
+                    'stream': stream,
+                    'error': None
+                })
+                
+            except json.JSONDecodeError as e:
+                print(f"JSON Error: {e}")
+                print(f"Content was: {content}")
+                return render(request, 'ai/career.html', {
+                    'error': 'Failed to parse AI response. Please try again.',
+                    'stream': stream
+                })
+                
         except Exception as e:
             print(f"Exception: {str(e)}")
-            import traceback
-            traceback.print_exc()
             return render(request, 'ai/career.html', {
                 'error': f'Error: {str(e)}',
                 'stream': stream
             })
     
     return render(request, 'ai/career.html', {})
+
+# ... (rest of the code remains the same)
