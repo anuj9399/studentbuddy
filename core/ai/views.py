@@ -823,123 +823,124 @@ def career_simple_test(request):
 
 @login_required
 def career(request):
-    """Career Guide view with AI predictions"""
-    import json
+    from django.conf import settings
     import requests
-    import os
-    import traceback
-    
-    careers = None
-    selected_stream = None
-    error_message = None
+    import json
     
     if request.method == 'POST':
-        selected_stream = request.POST.get('stream', '').strip()
+        stream = request.POST.get('stream', '').strip()
         
-        if selected_stream:
-            try:
-                # Debug: Check if API key is available
-                api_key = os.getenv('OPENROUTER_API_KEY')
-                print(f"DEBUG: API Key available: {bool(api_key)}")
-                print(f"DEBUG: API Key starts with: {api_key[:10] if api_key else 'None'}")
-                
-                # AI API call to OpenRouter
-                prompt = f"""You are a comprehensive career counselor for Indian students.
-For the academic stream "{selected_stream}", provide exactly 8 career paths.
+        if not stream:
+            return render(request, 'ai/career.html', {
+                'error': 'Please enter your academic stream'
+            })
+        
+        api_key = settings.OPENROUTER_API_KEY
+        
+        # Debug
+        print(f"=== CAREER GUIDE DEBUG ===")
+        print(f"Stream: {stream}")
+        print(f"API Key exists: {bool(api_key)}")
+        print(f"API Key prefix: {api_key[:20] if api_key else 'NONE'}")
+        
+        if not api_key:
+            return render(request, 'ai/career.html', {
+                'error': 'API key not configured. Please contact admin.',
+                'stream': stream
+            })
+        
+        prompt = f"""You are a career counselor for Indian students.
+A student studying {stream} wants career guidance.
 
-Return ONLY valid JSON in this exact format, no markdown, no extra text:
-{{
-  "careers": [
-    {{
-      "title": "Career Title",
-      "field": "Field/Domain",
-      "description": "2-3 sentence description of this career",
-      "match_percentage": 95,
-      "avg_salary": "₹X LPA - ₹Y LPA",
-      "growth": "High/Medium/Low",
-      "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"],
-      "job_outlook": "2-3 sentences about job market",
-      "industries": ["Industry 1", "Industry 2", "Industry 3", "Industry 4"],
-      "career_steps": [
-        {{"step": 1, "title": "Step title", "description": "What to do", "duration": "X years"}},
-        {{"step": 2, "title": "Step title", "description": "What to do", "duration": "X years"}},
-        {{"step": 3, "title": "Step title", "description": "What to do", "duration": "X years"}},
-        {{"step": 4, "title": "Step title", "description": "What to do", "duration": "X years"}},
-        {{"step": 5, "title": "Step title", "description": "What to do", "duration": "X years"}},
-        {{"step": 6, "title": "Step title", "description": "What to do", "duration": "X years"}}
-      ]
-    }}
-  ]
-}}
+Generate exactly 6 career paths for {stream} students in India.
 
-Generate exactly 8 diverse career options for {selected_stream} students in India.
-Use Indian salary ranges in LPA (Lakhs Per Annum).
-Make career_steps a realistic 6-step journey from education to senior level.
-"""
+Return ONLY a valid JSON array like this:
+[
+  {{
+    "title": "Software Engineer",
+    "description": "Build software applications and systems",
+    "avg_salary": "8-25 LPA",
+    "growth": "Excellent",
+    "skills": ["Python", "Java", "Problem Solving"],
+    "companies": ["TCS", "Infosys", "Google", "Microsoft"],
+    "steps": ["Complete degree", "Learn programming", "Build projects", "Apply for jobs"]
+  }}
+]
 
-                print(f"DEBUG: Sending request for stream: {selected_stream}")
-                print(f"DEBUG: Prompt length: {len(prompt)}")
+Return ONLY the JSON array. No markdown. No extra text."""
 
-                response = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
-                        "X-Title": "StudentBuddy",
-                    },
-                    json={
-                        "model": "anthropic/claude-3-haiku",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "max_tokens": 4000,
-                        "temperature": 0.7
-                    },
-                    timeout=30
-                )
-                
-                print(f"DEBUG: OpenRouter Status: {response.status_code}")
-                print(f"DEBUG: OpenRouter Response: {response.text[:300]}")
-                
-                if response.status_code == 200:
-                    response_data = response.json()
-                    raw_content = response_data['choices'][0]['message']['content']
-                    
-                    print(f"DEBUG: Raw content length: {len(raw_content)}")
-                    print(f"DEBUG: Raw content preview: {raw_content[:200]}")
-                    
-                    # Strip markdown and parse JSON
-                    raw_content = raw_content.replace('```json', '').replace('```', '').strip()
-                    print(f"DEBUG: Cleaned content preview: {raw_content[:200]}")
-                    
-                    data = json.loads(raw_content)
-                    careers = data.get('careers', [])
-                    
-                    print(f"DEBUG: Parsed {len(careers)} careers")
-                    
-                else:
-                    print(f"DEBUG: OpenRouter Error Response: {response.status_code} - {response.text}")
-                    error_message = "AI service temporarily unavailable. Please try again."
-                    
-            except requests.exceptions.Timeout:
-                print("DEBUG: OpenRouter Timeout Error")
-                error_message = "AI service is taking too long. Please try again."
-            except requests.exceptions.RequestException as e:
-                print(f"DEBUG: OpenRouter Request Error: {str(e)}")
-                traceback.print_exc()
-                error_message = "AI service temporarily unavailable. Please try again."
-            except json.JSONDecodeError as e:
-                print(f"DEBUG: JSON Decode Error: {str(e)}")
-                print(f"DEBUG: Raw Response: {response.text[:500]}")
-                error_message = "AI service returned invalid data. Please try again."
-            except Exception as e:
-                print(f"DEBUG: Unexpected Error: {str(e)}")
-                traceback.print_exc()
-                error_message = "An unexpected error occurred. Please try again."
+        try:
+            response = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://studentbuddy-v5ah.onrender.com',
+                    'X-Title': 'StudentBuddy',
+                },
+                json={
+                    'model': 'openai/gpt-4o-mini',
+                    'messages': [
+                        {'role': 'user', 'content': prompt}
+                    ],
+                    'max_tokens': 2000,
+                    'temperature': 0.7,
+                },
+                timeout=30
+            )
+            
+            print(f"Response status: {response.status_code}")
+            print(f"Response text: {response.text[:500]}")
+            
+            if response.status_code != 200:
+                return render(request, 'ai/career.html', {
+                    'error': f'API Error {response.status_code}: {response.text[:200]}',
+                    'stream': stream
+                })
+            
+            data = response.json()
+            content = data['choices'][0]['message']['content'].strip()
+            
+            print(f"Content: {content[:300]}")
+            
+            # Clean JSON
+            content = content.replace('```json', '').replace('```', '').strip()
+            
+            # Find JSON array
+            start = content.find('[')
+            end = content.rfind(']') + 1
+            if start != -1 and end > start:
+                content = content[start:end]
+            
+            careers = json.loads(content)
+            
+            print(f"Parsed {len(careers)} careers")
+            
+            return render(request, 'ai/career.html', {
+                'careers': careers,
+                'stream': stream,
+                'error': None
+            })
+            
+        except json.JSONDecodeError as e:
+            print(f"JSON Error: {e}")
+            print(f"Content was: {content}")
+            return render(request, 'ai/career.html', {
+                'error': 'Failed to parse AI response. Please try again.',
+                'stream': stream
+            })
+        except requests.exceptions.Timeout:
+            return render(request, 'ai/career.html', {
+                'error': 'Request timed out. Please try again.',
+                'stream': stream
+            })
+        except Exception as e:
+            print(f"Exception: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return render(request, 'ai/career.html', {
+                'error': f'Error: {str(e)}',
+                'stream': stream
+            })
     
-    context = {
-        'careers': careers,
-        'selected_stream': selected_stream,
-        'error_message': error_message,
-    }
-    
-    return render(request, "ai/career.html", context)
+    return render(request, 'ai/career.html', {})

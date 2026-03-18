@@ -15,9 +15,14 @@ from dotenv import load_dotenv
 import os
 import dj_database_url
 
-# Load environment variables from multiple files
-load_dotenv('.env.local')  # Local development
-load_dotenv()  # Override with production env if exists
+# Load .env file from core directory
+load_dotenv()
+
+# Debug: Check if API key is loaded
+OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
+
+print(f"=== OPENROUTER KEY LOADED: {bool(OPENROUTER_API_KEY)} ===")
+print(f"=== API KEY PREFIX: {OPENROUTER_API_KEY[:20] if OPENROUTER_API_KEY else 'NONE'} ===")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -160,9 +165,6 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
-import os
 
 # SerpApi for Google Search
 SERPAPI_KEY = os.environ.get('SERPAPI_KEY')
