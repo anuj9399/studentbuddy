@@ -731,6 +731,97 @@ def get_current_week_sessions(today, sessions):
     return week_sessions
 
 @login_required
+def career_test(request):
+    """Test endpoint for career API"""
+    import json
+    import requests
+    import os
+    from django.http import JsonResponse
+    
+    try:
+        api_key = os.getenv('OPENROUTER_API_KEY')
+        
+        # Debug environment variables
+        env_vars = {
+            'OPENROUTER_API_KEY': bool(api_key),
+            'DJANGO_SETTINGS_MODULE': os.getenv('DJANGO_SETTINGS_MODULE'),
+            'DEBUG': os.getenv('DEBUG'),
+            'all_env_keys': list(os.environ.keys())[:10]  # First 10 env vars
+        }
+        
+        print(f"DEBUG: Environment check - {env_vars}")
+        
+        # Simple test request
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
+                "X-Title": "StudentBuddy",
+            },
+            json={
+                "model": "anthropic/claude-3-haiku",
+                "messages": [{"role": "user", "content": "Respond with: 'API Test Successful'"}],
+                "max_tokens": 10,
+            },
+            timeout=10
+        )
+        
+        return JsonResponse({
+            "status": "success",
+            "api_key_available": bool(api_key),
+            "api_response_status": response.status_code,
+            "api_response": response.text[:100],
+            "environment": env_vars
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "error": str(e),
+            "api_key_available": bool(os.getenv('OPENROUTER_API_KEY')),
+            "environment": {
+                'OPENROUTER_API_KEY': bool(os.getenv('OPENROUTER_API_KEY')),
+                'DJANGO_SETTINGS_MODULE': os.getenv('DJANGO_SETTINGS_MODULE')
+            }
+        })
+
+@login_required
+def career_simple_test(request):
+    """Simple test endpoint without AI dependency"""
+    from django.http import JsonResponse
+    
+    # Test data to verify template rendering
+    test_careers = [
+        {
+            "title": "Software Engineer",
+            "field": "Information Technology",
+            "description": "Design and develop software applications for various industries.",
+            "match_percentage": 92,
+            "avg_salary": "₹8 LPA - ₹25 LPA",
+            "growth": "High",
+            "skills": ["Python", "JavaScript", "React", "Node.js", "SQL"],
+            "job_outlook": "Excellent demand with remote work opportunities.",
+            "industries": ["IT Services", "FinTech", "E-commerce", "Healthcare"],
+            "career_steps": [
+                {"step": 1, "title": "Learn Programming", "description": "Master coding fundamentals", "duration": "1 year"},
+                {"step": 2, "title": "Build Projects", "description": "Create portfolio projects", "duration": "1 year"},
+                {"step": 3, "title": "Get Internship", "description": "Gain industry experience", "duration": "6 months"},
+                {"step": 4, "title": "Entry Level Job", "description": "Start as junior developer", "duration": "2 years"},
+                {"step": 5, "title": "Senior Developer", "description": "Lead development teams", "duration": "3 years"},
+                {"step": 6, "title": "Tech Lead", "description": "Manage technical strategy", "duration": "4 years"}
+            ]
+        }
+    ]
+    
+    return render(request, "ai/career.html", {
+        'careers': test_careers,
+        'selected_stream': 'Computer Science',
+        'error_message': None
+    })
+
+@login_required
 def career(request):
     """Career Guide view with AI predictions"""
     import json
@@ -747,6 +838,11 @@ def career(request):
         
         if selected_stream:
             try:
+                # Debug: Check if API key is available
+                api_key = os.getenv('OPENROUTER_API_KEY')
+                print(f"DEBUG: API Key available: {bool(api_key)}")
+                print(f"DEBUG: API Key starts with: {api_key[:10] if api_key else 'None'}")
+                
                 # AI API call to OpenRouter
                 prompt = f"""You are a comprehensive career counselor for Indian students.
 For the academic stream "{selected_stream}", provide exactly 8 career paths.
@@ -781,10 +877,13 @@ Use Indian salary ranges in LPA (Lakhs Per Annum).
 Make career_steps a realistic 6-step journey from education to senior level.
 """
 
+                print(f"DEBUG: Sending request for stream: {selected_stream}")
+                print(f"DEBUG: Prompt length: {len(prompt)}")
+
                 response = requests.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers={
-                        "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY', 'sk-or-v1-your-key-here')}",
+                        "Authorization": f"Bearer {api_key}",
                         "Content-Type": "application/json",
                         "HTTP-Referer": "https://studentbuddy-v5ah.onrender.com",
                         "X-Title": "StudentBuddy",
@@ -798,35 +897,42 @@ Make career_steps a realistic 6-step journey from education to senior level.
                     timeout=30
                 )
                 
-                print(f"OpenRouter Status: {response.status_code}")
-                print(f"OpenRouter Response: {response.text[:300]}")
+                print(f"DEBUG: OpenRouter Status: {response.status_code}")
+                print(f"DEBUG: OpenRouter Response: {response.text[:300]}")
                 
                 if response.status_code == 200:
                     response_data = response.json()
                     raw_content = response_data['choices'][0]['message']['content']
                     
+                    print(f"DEBUG: Raw content length: {len(raw_content)}")
+                    print(f"DEBUG: Raw content preview: {raw_content[:200]}")
+                    
                     # Strip markdown and parse JSON
                     raw_content = raw_content.replace('```json', '').replace('```', '').strip()
+                    print(f"DEBUG: Cleaned content preview: {raw_content[:200]}")
+                    
                     data = json.loads(raw_content)
                     careers = data.get('careers', [])
                     
+                    print(f"DEBUG: Parsed {len(careers)} careers")
+                    
                 else:
-                    print(f"OpenRouter Error Response: {response.status_code} - {response.text}")
+                    print(f"DEBUG: OpenRouter Error Response: {response.status_code} - {response.text}")
                     error_message = "AI service temporarily unavailable. Please try again."
                     
             except requests.exceptions.Timeout:
-                print("OpenRouter Timeout Error")
+                print("DEBUG: OpenRouter Timeout Error")
                 error_message = "AI service is taking too long. Please try again."
             except requests.exceptions.RequestException as e:
-                print(f"OpenRouter Request Error: {str(e)}")
+                print(f"DEBUG: OpenRouter Request Error: {str(e)}")
                 traceback.print_exc()
                 error_message = "AI service temporarily unavailable. Please try again."
             except json.JSONDecodeError as e:
-                print(f"JSON Decode Error: {str(e)}")
-                print(f"Raw Response: {response.text[:500]}")
+                print(f"DEBUG: JSON Decode Error: {str(e)}")
+                print(f"DEBUG: Raw Response: {response.text[:500]}")
                 error_message = "AI service returned invalid data. Please try again."
             except Exception as e:
-                print(f"Unexpected Error: {str(e)}")
+                print(f"DEBUG: Unexpected Error: {str(e)}")
                 traceback.print_exc()
                 error_message = "An unexpected error occurred. Please try again."
     
