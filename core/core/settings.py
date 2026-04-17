@@ -190,13 +190,17 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# CSRF Trusted Origins for Render
+# CSRF Trusted Origins for Railway
 CSRF_TRUSTED_ORIGINS = [
+    "https://studentbuddy-production-26a9.up.railway.app",
     'https://studentbuddy-v5ah.onrender.com',
     'https://*.onrender.com',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
 ]
+
+# HTTPS handling for Railway
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 
