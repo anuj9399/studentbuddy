@@ -11,40 +11,39 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from dotenv import load_dotenv
 import os
 import dj_database_url
 
-# Load .env file from core directory
-load_dotenv()
-
-# Debug: Check if API key is loaded
-OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
-GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
-
-print(f"=== OPENROUTER KEY LOADED: {bool(OPENROUTER_API_KEY)} ===")
-print(f"=== GEMINI KEY LOADED: {bool(GEMINI_API_KEY)} ===")
-print(f"=== GROQ KEY LOADED: {bool(GROQ_API_KEY)} ===")
-print(f"=== API KEY PREFIX: {OPENROUTER_API_KEY[:20] if OPENROUTER_API_KEY else 'NONE'} ===")
+# Try to load .env file from core directory (optional for production)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not available in production
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get(
-    'ALLOWED_HOSTS',
-    'localhost,127.0.0.1'
-).split(',')
+# Temporary for deployment - update to specific domains in production
+ALLOWED_HOSTS = ['*']
+
+# API Keys (load from environment variables)
+OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
+
+# Only print debug info in development mode
+if DEBUG:
+    print(f"=== OPENROUTER KEY LOADED: {bool(OPENROUTER_API_KEY)} ===")
+    print(f"=== GEMINI KEY LOADED: {bool(GEMINI_API_KEY)} ===")
+    print(f"=== GROQ KEY LOADED: {bool(GROQ_API_KEY)} ===")
+    print(f"=== API KEY PREFIX: {OPENROUTER_API_KEY[:20] if OPENROUTER_API_KEY else 'NONE'} ===")
 
 
 # Application definition
@@ -74,8 +73,8 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -108,11 +107,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'sqlite:///' + str(BASE_DIR / 'db.sqlite3')),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    'default': dj_database_url.config(default='sqlite:///db.sqlite3')
 }
 
 
