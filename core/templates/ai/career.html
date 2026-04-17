@@ -372,7 +372,8 @@ function setStream(stream) {
             <!-- Career Header -->
             <div class="career-header">
                 <div>
-                    <h2 class="career-title">{{ career.icon|default:"🎯" }} {{ career.title }}</h2>
+                    <h2 class="career-title">{{ career.icon|default:"" }} {{ career.title }}</h2>
+                    <p class="career-field">{{ career.field }}</p>
                     <p class="career-desc">{{ career.description }}</p>
                 </div>
             </div>
@@ -388,45 +389,18 @@ function setStream(stream) {
                     <div class="stat-value">{{ career.avg_salary|default:"N/A" }}</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Senior</div>
-                    <div class="stat-value">{{ career.senior_salary|default:"N/A" }}</div>
-                </div>
-            </div>
-
-            <!-- Quick Stats Row -->
-            <div class="career-stats">
-                <div class="stat-box">
                     <div class="stat-label">Growth</div>
                     <div class="stat-value green">{{ career.growth|default:"N/A" }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Demand</div>
-                    <div class="stat-value orange">{{ career.demand|default:"N/A" }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Work Type</div>
-                    <div class="stat-value blue">{{ career.work_type|default:"N/A" }}</div>
                 </div>
             </div>
 
             <!-- Skills Section -->
             {% if career.skills %}
             <div class="skills-section">
-                <div class="section-label">Technical Skills</div>
+                <div class="section-label">Key Skills</div>
                 <div class="skills-list">
                     {% for skill in career.skills %}
                     <span class="skill-tag" style="background:#7c3aed; color:white;">{{ skill }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if career.soft_skills %}
-            <div class="skills-section">
-                <div class="section-label">Soft Skills</div>
-                <div class="skills-list">
-                    {% for skill in career.soft_skills %}
-                    <span class="skill-tag" style="background:#3b82f6; color:white;">{{ skill }}</span>
                     {% endfor %}
                 </div>
             </div>
@@ -444,13 +418,13 @@ function setStream(stream) {
             </div>
             {% endif %}
 
-            <!-- Top Roles Section -->
-            {% if career.top_roles %}
+            <!-- Roles Section -->
+            {% if career.roles %}
             <div class="career-journey">
-                <div class="section-label">Top Roles</div>
+                <div class="section-label">Career Roles</div>
                 <div class="roles-list">
-                    {% for role in career.top_roles %}
-                    <div class="role-item">• {{ role }}</div>
+                    {% for role in career.roles %}
+                    <div class="role-item">{{ role }}</div>
                     {% endfor %}
                 </div>
             </div>
@@ -462,7 +436,7 @@ function setStream(stream) {
                 <div class="section-label">Recommended Certifications</div>
                 <div class="cert-list">
                     {% for cert in career.certifications %}
-                    <div class="cert-item">🏆 {{ cert }}</div>
+                    <div class="cert-item">{{ cert }}</div>
                     {% endfor %}
                 </div>
             </div>
@@ -471,25 +445,23 @@ function setStream(stream) {
             <!-- Education Section -->
             {% if career.education %}
             <div class="career-journey">
-                <div class="section-label">Education Path</div>
-                <div class="edu-list">
-                    {% for edu in career.education %}
-                    <div class="edu-item">🎓 {{ edu }}</div>
-                    {% endfor %}
-                </div>
+                <div class="section-label">Education Requirements</div>
+                <div class="edu-item">{{ career.education }}</div>
             </div>
             {% endif %}
 
             <!-- Career Steps Section -->
-            {% if career.steps %}
+            {% if career.career_steps %}
             <div class="career-journey">
-                <div class="section-label">Career Steps</div>
+                <div class="section-label">Career Path Steps</div>
                 <div class="steps-list">
-                    {% for step in career.steps %}
+                    {% for step in career.career_steps %}
                     <div class="journey-step">
-                        <div class="step-number">{{ forloop.counter }}</div>
+                        <div class="step-number">Step {{ step.step }}</div>
                         <div class="step-content">
-                            <div class="step-title">{{ step }}</div>
+                            <div class="step-title">{{ step.title }}</div>
+                            <div class="step-desc">{{ step.description }}</div>
+                            <div class="step-duration">{{ step.duration }}</div>
                         </div>
                     </div>
                     {% endfor %}
@@ -498,34 +470,33 @@ function setStream(stream) {
             {% endif %}
 
             <!-- Pros and Cons Section -->
-            <div class="pros-cons-section">
-                {% if career.pros %}
-                <div class="pros-box">
-                    <div class="section-label">✅ Pros</div>
-                    {% for pro in career.pros %}
-                    <div class="pro-item">✓ {{ pro }}</div>
-                    {% endfor %}
+            {% if career.pros and career.cons %}
+            <div class="career-journey">
+                <div class="section-label">Pros & Cons</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <div style="font-weight: 600; color: #16a34a; margin-bottom: 8px;">Pros:</div>
+                        {% for pro in career.pros %}
+                        <div class="pro-item">+ {{ pro }}</div>
+                        {% endfor %}
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #dc2626; margin-bottom: 8px;">Cons:</div>
+                        {% for con in career.cons %}
+                        <div class="con-item">- {{ con }}</div>
+                        {% endfor %}
+                    </div>
                 </div>
-                {% endif %}
-                
-                {% if career.cons %}
-                <div class="cons-box">
-                    <div class="section-label">❌ Cons</div>
-                    {% for con in career.cons %}
-                    <div class="con-item">✗ {{ con }}</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Future Outlook Section -->
-            {% if career.future %}
-            <div class="future-outlook">
-                <div class="section-label">🔮 Future Outlook</div>
-                <p style="color:#4b5563; font-size:14px; line-height:1.5;">{{ career.future }}</p>
             </div>
             {% endif %}
 
+            <!-- Future Outlook Section -->
+            {% if career.future %}
+            <div class="career-journey">
+                <div class="section-label">Future Outlook</div>
+                <div class="future-text">{{ career.future }}</div>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     {% endif %}

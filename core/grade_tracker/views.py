@@ -1,13 +1,22 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.template.loader import render_to_string
 import json
 import requests
 import sys
 import os
+from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.pdfgen import canvas
+from io import BytesIO
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ai.views import call_groq
 
@@ -55,10 +64,13 @@ Return only valid JSON."""
             # Call AI API
             try:
                 content, error = call_groq(ai_prompt, max_tokens=1000)
+                ai_response = content  # Define ai_response for later use
                 
                 if error:
                     messages.error(request, f'AI analysis failed: {error}')
                     return redirect('grade_tracker:grade_setup')
+                
+                print("AI RESPONSE:", ai_response)  # Debug print
                 
                 # Try to parse JSON response
                 try:
@@ -260,7 +272,7 @@ def delete_semester(request, semester_id):
 
 @login_required
 def print_report(request):
-    """Print-friendly report"""
+    """Generate PDF report for download using ReportLab"""
     try:
         profile = request.user.academicprofile
         semesters = Semester.objects.filter(user=request.user)
@@ -277,19 +289,249 @@ def print_report(request):
         else:
             percentage = (current_cgpa / 7.0) * 100
         
-        context = {
-            'profile': profile,
-            'semesters': semesters,
-            'current_cgpa': current_cgpa,
-            'percentage': percentage,
-            'total_credits': total_credits,
-            'ai_data': json.loads(profile.ai_analysis or '{}'),
+        # Get AI data safely
+        ai_data = {
+            'benchmark_message': profile.benchmark_message or '',
+            'improvement_tips': []
         }
         
-        return render(request, 'grade_tracker/print_report.html', context)
+        try:
+            if profile.improvement_tips:
+                ai_data['improvement_tips'] = json.loads(profile.improvement_tips)
+        except (json.JSONDecodeError, TypeError):
+            ai_data['improvement_tips'] = []
+        
+        # Get status badge
+        status_badge = get_status_badge(current_cgpa, profile)
+        
+        # Create PDF buffer
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30,
+            alignment=1,  # Center
+            textColor=colors.black
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=16,
+            spaceAfter=12,
+            textColor=colors.black
+        )
+        
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=10,
+            spaceAfter=6,
+            textColor=colors.black
+        )
+        
+        # Build PDF content
+        story = []
+        
+        # Title
+        story.append(Paragraph("ACADEMIC REPORT", title_style))
+        story.append(Spacer(1, 20))
+        
+        # Student Information
+        student_data = [
+            ['Student:', f"{request.user.first_name or request.user.username}"],
+            ['University:', f"{profile.university_name} ({profile.university_short})"],
+            ['Branch:', profile.branch],
+            ['Pattern:', f"{profile.pattern_year} | Stream: {profile.stream}"],
+            ['Generated:', datetime.now().strftime("%Y-%m-%d %H:%M")]
+        ]
+        
+        student_table = Table(student_data, colWidths=[1.5*inch, 4*inch])
+        student_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+        ]))
+        
+        story.append(student_table)
+        story.append(Spacer(1, 20))
+        
+        # CGPA Summary
+        story.append(Paragraph("CGPA Summary", heading_style))
+        
+        cgpa_data = [
+            ['Current CGPA', f"{current_cgpa:.2f}"],
+            ['Percentage', f"{percentage:.1f}%"],
+            ['Total Credits', str(total_credits)]
+        ]
+        
+        cgpa_table = Table(cgpa_data, colWidths=[2.5*inch, 2*inch])
+        cgpa_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.blue),
+            ('BACKGROUND', (1, 0), (1, -1), colors.lightblue),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(cgpa_table)
+        story.append(Spacer(1, 20))
+        
+        # University Benchmarks
+        story.append(Paragraph("University Benchmarks", heading_style))
+        
+        benchmark_data = [
+            ['Minimum Pass', str(profile.minimum_cgpa)],
+            ['Good for Placements', str(profile.good_cgpa)],
+            ['Excellent/Distinction', str(profile.excellent_cgpa)],
+            ['Placement Cutoff', str(profile.placement_cutoff)]
+        ]
+        
+        benchmark_table = Table(benchmark_data, colWidths=[2.5*inch, 1.5*inch])
+        benchmark_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.red),
+            ('BACKGROUND', (1, 0), (1, -1), colors.lightcoral),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(benchmark_table)
+        
+        if ai_data['benchmark_message']:
+            story.append(Spacer(1, 10))
+            story.append(Paragraph(f"<b>AI Advice:</b> {ai_data['benchmark_message']}", normal_style))
+        
+        story.append(Spacer(1, 20))
+        
+        # Semester History
+        story.append(Paragraph("Semester History", heading_style))
+        
+        if semesters:
+            semester_data = [['Semester', 'SGPA', 'Credits', 'Weighted Points', 'Status']]
+            for sem in semesters:
+                semester_data.append([
+                    f"Semester {sem.semester_number}",
+                    str(sem.sgpa),
+                    str(sem.credits),
+                    f"{sem.weighted_points:.2f}",
+                    sem.status_badge.get('text', 'Unknown')
+                ])
+            
+            # Add total row
+            semester_data.append(['TOTAL', f"{current_cgpa:.2f}", str(total_credits), f"{total_weighted_points:.2f}", 'Overall CGPA'])
+            
+            semester_table = Table(semester_data, colWidths=[1.5*inch, 1*inch, 1*inch, 1.5*inch, 1.5*inch])
+            semester_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            
+            story.append(semester_table)
+        else:
+            story.append(Paragraph("No semesters added yet.", normal_style))
+        
+        # Performance Analysis
+        if ai_data['improvement_tips']:
+            story.append(Spacer(1, 20))
+            story.append(Paragraph("Performance Analysis & Recommendations", heading_style))
+            
+            # Current Status
+            story.append(Paragraph("Current Status", normal_style))
+            story.append(Paragraph(status_badge.get('text', 'Unknown'), normal_style))
+            story.append(Spacer(1, 10))
+            
+            # Improvement Tips
+            story.append(Paragraph("Improvement Tips", normal_style))
+            for tip in ai_data['improvement_tips']:
+                story.append(Paragraph(f"â¢ {tip}", normal_style))
+        
+        # Footer
+        story.append(Spacer(1, 30))
+        story.append(Paragraph("This is an official academic report generated from StudentBuddy Grade Tracker", normal_style))
+        story.append(Paragraph("For questions about this report, please contact the academic advisor", normal_style))
+        
+        # Build PDF
+        doc.build(story)
+        
+        # Get PDF value
+        pdf = buffer.getvalue()
+        buffer.close()
+        
+        # Create response
+        response = HttpResponse(pdf, content_type='application/pdf')
+        filename = f"academic_report_{profile.university_short}_{request.user.username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
         
     except AcademicProfile.DoesNotExist:
         return redirect('grade_tracker:grade_setup')
+    except Exception as e:
+        print(f"Print report error: {e}")
+        # Return a basic report even if there's an error
+        try:
+            profile = request.user.academicprofile
+            semesters = Semester.objects.filter(user=request.user)
+            total_credits = sum(sem.credits for sem in semesters)
+            total_weighted_points = sum(sem.weighted_points for sem in semesters)
+            current_cgpa = total_weighted_points / total_credits if total_credits > 0 else 0
+            
+            if profile.grading_scale == 10.0:
+                percentage = current_cgpa * 9.5
+            elif profile.grading_scale == 4.0:
+                percentage = current_cgpa * 25
+            else:
+                percentage = (current_cgpa / 7.0) * 100
+            
+            # Create simple PDF
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            story.append(Paragraph("ACADEMIC REPORT", styles['Title']))
+            story.append(Spacer(1, 20))
+            story.append(Paragraph(f"Student: {request.user.first_name or request.user.username}", styles['Normal']))
+            story.append(Paragraph(f"University: {profile.university_name}", styles['Normal']))
+            story.append(Paragraph(f"Current CGPA: {current_cgpa:.2f}", styles['Normal']))
+            story.append(Paragraph(f"Percentage: {percentage:.1f}%", styles['Normal']))
+            story.append(Paragraph(f"Total Credits: {total_credits}", styles['Normal']))
+            
+            doc.build(story)
+            pdf = buffer.getvalue()
+            buffer.close()
+            
+            response = HttpResponse(pdf, content_type='application/pdf')
+            filename = f"academic_report_{profile.university_short}_{request.user.username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
+        except:
+            return redirect('grade_tracker:grade_dashboard')
 
 def get_ai_improvement_advice(profile, semesters, current_cgpa):
     """Get AI improvement advice with caching"""
